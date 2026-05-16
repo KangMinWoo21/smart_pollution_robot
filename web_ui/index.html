@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>터틀봇 관제 대시보드</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.0/nipplejs.min.js"></script>
+    <script src="https://static.robotwebtools.org/EaselJS/current/easeljs.min.js"></script>
+    <script src="https://static.robotwebtools.org/ros2djs/current/ros2d.min.js"></script>
+
+    <style>
+        :root { --accent: #007AFF; --bg: #f2f2f7; --card: #ffffff; }
+        
+        /* 1. 바디 전체는 세로 스크롤 허용, 가로 스크롤 방지 */
+        body { 
+            font-family: -apple-system, sans-serif; 
+            background-color: var(--bg); 
+            margin: 0; 
+            padding: 15px; 
+            overflow-x: hidden; 
+            overflow-y: auto; 
+        }
+        
+        .card { 
+            background: var(--card); 
+            border-radius: 28px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        #status_box { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+        .connected { background-color: #e8f5e9; color: #2e7d32; }
+        .disconnected { background-color: #ffebee; color: #c62828; }
+
+        /* 2. 맵 컨테이너 최적화 (가운데 정렬) */
+        #map { 
+            width: 100%; 
+            height: 350px; 
+            background: #e0e0e0; 
+            border-radius: 24px; 
+            overflow: hidden; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn { flex: 1; padding: 15px; border-radius: 18px; border: none; font-weight: bold; font-size: 16px; background: #e5e5ea; color: #8e8e93; }
+        .btn.active { background: var(--accent); color: white; }
+        
+        /* 3. 조이스틱 영역 안에서만 스크롤 방지! (가장 중요) */
+        #zone_joystick { 
+            width: 100%; 
+            height: 200px; 
+            position: relative; 
+            touch-action: none; 
+        }
+    </style>
+</head>
+<body>
+    <div class="card header">
+        <h1>🌬️ 공기청정 관제</h1>
+        <div id="status_box" class="disconnected">연결 대기</div>
+    </div>
+
+    <div class="card">
+        <div id="map"></div> 
+    </div>
+
+    <div class="card" style="display:flex; gap:10px;">
+        <button id="btn_manual" class="btn active" onclick="setMode('manual')">수동</button>
+        <button id="btn_auto" class="btn" onclick="setMode('auto')">자동</button>
+    </div>
+
+    <div class="card">
+        <div id="zone_joystick"></div>
+    </div>
+
+    <script>
+        // 현재 브라우저가 접속한 IP(노트북 IP)를 자동으로 가져와서 9090 포트에 연결
+        var ros = new ROSLIB.Ros({ url : 'ws://' + window.location.hostname + ':9090' });
+        var viewer = null;
+        var gridClient = null;
+
+        ros.on('connection', () => { 
+            document.getElementById('status_box').innerText = '연결됨 🟢'; 
+            document.getElementById('status_box').className = 'connected';
+            
+            // 연결 직후 0.5초 뒤에 맵 초기화 (데이터 로딩 지연 대응)
+            setTimeout(initMap, 500);
+        });
+
+        ros.on('error', () => {
+            document.getElementById('status_box').innerText = '연결 에러 🔴';
+            document.getElementById('status_box').className = 'disconnected';
+        });
+
+        ros.on('close', () => {
+            document.getElementById('status_box').innerText = '연결 끊김 🔴';
+            document.getElementById('status_box').className = 'disconnected';
+        });
+
+        function initMap() {
+            if (viewer) return; // 이미 초기화됐다면 중복 실행 방지
+
+            var mapDiv = document.getElementById('map');
+            
+            // 1. Viewer 설정: 맵을 담을 캔버스 생성
+            viewer = new ROS2D.Viewer({
+                divID: 'map',
+                width: mapDiv.offsetWidth, // 현재 화면의 폭에 맞춤
+                height: 350
+            });
+
+            // 2. OccupancyGridClient 설정: /map 토픽 구독
+            gridClient = new ROS2D.OccupancyGridClient({
+                ros: ros,
+                rootObject: viewer.scene,
+topic: '/map',                
+continuous: true // 실시간 맵 업데이트 활성화
+            });
+
+            // 3. 맵 데이터가 들어오면 화면 크기에 맞게 자동 조정
+            gridClient.on('change', function() {
+                viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
+                viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+            });
+        }
+
+        // --- 조이스틱 및 모드 제어 ---
+        var cmdVel = new ROSLIB.Topic({ ros: ros, name: '/cmd_vel', messageType: 'geometry_msgs/Twist' });
+        var modeTopic = new ROSLIB.Topic({ ros: ros, name: '/robot_mode', messageType: 'std_msgs/String' });
+
+        function setMode(mode) {
+            document.getElementById('btn_manual').className = (mode === 'manual') ? 'btn active' : 'btn';
+            document.getElementById('btn_auto').className = (mode === 'auto') ? 'btn active' : 'btn';
+            modeTopic.publish(new ROSLIB.Message({ data: mode }));
+        }
+
+        var joystick = nipplejs.create({ 
+            zone: document.getElementById('zone_joystick'), 
+            mode: 'static', position: {left: '50%', top: '50%'}, 
+            color: '#007AFF', size: 130 
+        });
+        
+        joystick.on('move', (evt, data) => {
+            var linear = Math.sin(data.angle.radian) * 0.22 * (data.distance / 65);
+            var angular = -Math.cos(data.angle.radian) * 1.2 * (data.distance / 65);
+            cmdVel.publish(new ROSLIB.Message({ linear: {x: linear, y:0, z:0}, angular: {x:0, y:0, z:angular} }));
+        });
+        
+        joystick.on('end', () => { 
+            cmdVel.publish(new ROSLIB.Message({ linear: {x:0, y:0, z:0}, angular: {x:0, y:0, z:0} })); 
+        });
+    </script>
+</body>
+</html>
