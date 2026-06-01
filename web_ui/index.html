@@ -4,156 +4,951 @@
     <meta charset="UTF-8">
     <title>터틀봇 관제 대시보드</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
     <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.0/nipplejs.min.js"></script>
-    <script src="https://static.robotwebtools.org/EaselJS/current/easeljs.min.js"></script>
-    <script src="https://static.robotwebtools.org/ros2djs/current/ros2d.min.js"></script>
+    <script src="predictive_air_quality.js"></script>
 
     <style>
-        :root { --accent: #007AFF; --bg: #f2f2f7; --card: #ffffff; }
-        
-        /* 1. 바디 전체는 세로 스크롤 허용, 가로 스크롤 방지 */
-        body { 
-            font-family: -apple-system, sans-serif; 
-            background-color: var(--bg); 
-            margin: 0; 
-            padding: 15px; 
-            overflow-x: hidden; 
-            overflow-y: auto; 
+        :root {
+            --bg: #f6f7f5;
+            --surface: #fffefa;
+            --surface-strong: #ffffff;
+            --ink: #202322;
+            --muted: #777f7b;
+            --line: #e4e8e2;
+            --green: #27786b;
+            --green-soft: #dcefe9;
+            --blue: #4577ff;
+            --warning: #d76b48;
+            --shadow: 0 18px 40px rgba(42, 51, 46, 0.12);
         }
-        
-        .card { 
-            background: var(--card); 
-            border-radius: 28px; 
-            padding: 20px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-        }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        #status_box { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-        .connected { background-color: #e8f5e9; color: #2e7d32; }
-        .disconnected { background-color: #ffebee; color: #c62828; }
 
-        /* 2. 맵 컨테이너 최적화 (가운데 정렬) */
-        #map { 
-            width: 100%; 
-            height: 350px; 
-            background: #e0e0e0; 
-            border-radius: 24px; 
-            overflow: hidden; 
+        * { box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background:
+                radial-gradient(circle at 18% 0%, rgba(224, 239, 232, 0.9), transparent 34%),
+                linear-gradient(180deg, #fbfbf8 0%, var(--bg) 46%, #eef2ef 100%);
+            color: var(--ink);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            letter-spacing: 0;
+        }
+
+        .app_shell {
+            width: min(100%, 540px);
+            margin: 0 auto;
+            min-height: 100vh;
+            padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top_bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 2px 2px 8px;
+        }
+
+        .eyebrow {
+            margin: 0 0 4px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(22px, 6vw, 30px);
+            line-height: 1.08;
+            font-weight: 850;
+        }
+
+        .status-pill,
+        #status_box {
+            flex: 0 0 auto;
+            min-width: 86px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(32, 35, 34, 0.08);
+            background: #f0eee9;
+            color: #675f58;
+            font-size: 12px;
+            font-weight: 850;
+            text-align: center;
+        }
+
+        #status_box.connected {
+            background: var(--green-soft);
+            color: #145b50;
+        }
+
+        #status_box.disconnected {
+            background: #f8e7df;
+            color: #94442b;
+        }
+
+        .hero_card,
+        .panel {
+            border: 1px solid rgba(92, 109, 99, 0.16);
+            border-radius: 28px;
+            background: rgba(255, 254, 250, 0.92);
+            box-shadow: var(--shadow);
+        }
+
+        .hero_card {
+            position: relative;
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        .hero_card::before {
+            content: "";
+            position: absolute;
+            inset: 18px 18px auto auto;
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(39, 120, 107, 0.2), rgba(39, 120, 107, 0.04) 62%, transparent 64%);
+            pointer-events: none;
+        }
+
+        .air_header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            position: relative;
+        }
+
+        .section_label,
+        .metric_label {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .air_quality_text {
+            margin-top: 5px;
+            font-size: 15px;
+            line-height: 1.2;
+            font-weight: 850;
+        }
+
+        .pm_display {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            margin-top: 8px;
+        }
+
+        #pm25_value {
+            font-size: clamp(38px, 13vw, 56px);
+            line-height: 0.9;
+            font-weight: 880;
+            letter-spacing: 0;
+        }
+
+        .metric_unit {
+            color: var(--muted);
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .air_ring {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: conic-gradient(var(--green) 0 76%, #e6ebe7 76% 100%);
+            display: grid;
+            place-items: center;
+            box-shadow: inset 0 0 0 1px rgba(39, 120, 107, 0.18);
+        }
+
+        .air_ring::after {
+            content: "";
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--surface);
+            box-shadow: inset 0 0 0 1px rgba(92, 109, 99, 0.12);
+        }
+
+        .quick_stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .metric {
+            min-height: 48px;
+            padding: 8px;
+            border-radius: 20px;
+            border: 1px solid var(--line);
+            background: var(--surface-strong);
+        }
+
+        .metric_value {
+            margin-top: 3px;
+            color: var(--ink);
+            font-size: 13px;
+            line-height: 1.25;
+            font-weight: 850;
+            word-break: keep-all;
+        }
+
+        .panel {
+            margin-top: 8px;
+            padding: 12px;
+        }
+
+        .panel_header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .panel_title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 850;
+        }
+
+        #map {
+            width: 100%;
+            height: clamp(188px, 28vh, 240px);
+            min-height: 188px;
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            background: #202421;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        .btn { flex: 1; padding: 15px; border-radius: 18px; border: none; font-weight: bold; font-size: 16px; background: #e5e5ea; color: #8e8e93; }
-        .btn.active { background: var(--accent); color: white; }
-        
-        /* 3. 조이스틱 영역 안에서만 스크롤 방지! (가장 중요) */
-        #zone_joystick { 
-            width: 100%; 
-            height: 200px; 
-            position: relative; 
-            touch-action: none; 
+        #map_canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #map_status {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            max-width: calc(100% - 24px);
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(255, 254, 250, 0.9);
+            color: #27302c;
+            font-size: 12px;
+            font-weight: 850;
+            pointer-events: none;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+        }
+
+        .mode_switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            padding: 6px;
+            border-radius: 999px;
+            background: #ecefea;
+        }
+
+        .btn {
+            width: 100%;
+            min-height: 40px;
+            padding: 9px 12px;
+            border: 0;
+            border-radius: 999px;
+            background: transparent;
+            color: #6a736f;
+            font-size: 15px;
+            font-weight: 850;
+        }
+
+        .btn.active {
+            background: #1f2421;
+            color: white;
+            box-shadow: 0 10px 22px rgba(32, 35, 34, 0.2);
+        }
+
+        .joystick_panel {
+            min-height: 0;
+            flex: 0 0 auto;
+        }
+
+        .predictive_panel {
+            display: grid;
+            gap: 10px;
+        }
+
+        .prediction_topline {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        #prediction_target {
+            margin: 3px 0 0;
+            font-size: 18px;
+            line-height: 1.18;
+            font-weight: 880;
+        }
+
+        #prediction_score {
+            flex: 0 0 auto;
+            min-width: 74px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: #1f2421;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 880;
+            text-align: center;
+        }
+
+        .prediction_reason {
+            margin: 0;
+            color: #4e5753;
+            font-size: 13px;
+            line-height: 1.35;
+            font-weight: 760;
+            word-break: keep-all;
+        }
+
+        .prediction_grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .prediction_input {
+            width: 100%;
+            min-height: 36px;
+            margin-top: 4px;
+            padding: 7px 9px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: var(--surface-strong);
+            color: var(--ink);
+            font: inherit;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .zone_marker_label {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        #zone_joystick {
+            width: 100%;
+            height: clamp(132px, 20vh, 170px);
+            position: relative;
+            touch-action: none;
+            overflow: hidden;
+            border-radius: 26px;
+            background:
+                linear-gradient(90deg, transparent calc(50% - 1px), rgba(39, 120, 107, 0.15) calc(50% - 1px), rgba(39, 120, 107, 0.15) calc(50% + 1px), transparent calc(50% + 1px)),
+                linear-gradient(0deg, transparent calc(50% - 1px), rgba(39, 120, 107, 0.15) calc(50% - 1px), rgba(39, 120, 107, 0.15) calc(50% + 1px), transparent calc(50% + 1px)),
+                #f1f4ef;
+            border: 1px solid var(--line);
+        }
+
+        #zone_joystick::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 78px;
+            height: 78px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 1px solid rgba(39, 120, 107, 0.18);
+            background: rgba(255, 254, 250, 0.42);
+            pointer-events: none;
+        }
+
+
+        @media (max-width: 859px) {
+            .controls_column > .panel .panel_header,
+            .dashboard_grid > .panel .panel_header,
+            .joystick_panel .panel_header {
+                display: none;
+            }
+
+            .controls_column > .panel {
+                padding: 9px;
+            }
+
+            .mode_switch {
+                padding: 4px;
+            }
+
+            .btn {
+                min-height: 36px;
+                padding: 8px 10px;
+            }
+
+            #map {
+                height: 248px;
+                min-height: 248px;
+            }
+
+            #zone_joystick {
+                height: 128px;
+                border-radius: 22px;
+            }
+        }
+
+
+        @media (max-height: 760px) {
+            .eyebrow, .section_label, .metric_label {
+                font-size: 11px;
+            }
+
+            h1 {
+                font-size: 21px;
+            }
+
+            .hero_card, .panel {
+                border-radius: 22px;
+            }
+
+            .top_bar {
+                padding-bottom: 6px;
+            }
+
+            #map {
+                height: 220px;
+                min-height: 220px;
+            }
+
+            #zone_joystick {
+                height: 112px;
+            }
+        }
+
+        @media (min-width: 860px) {
+            .app_shell {
+                width: min(100%, 1040px);
+                padding-top: 18px;
+            }
+
+            .dashboard_grid {
+                display: grid;
+                grid-template-columns: 0.9fr 1.1fr;
+                gap: 12px;
+                align-items: start;
+            }
+
+            .panel {
+                margin-top: 0;
+            }
+
+            .controls_column {
+                display: grid;
+                gap: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="card header">
-        <h1>🌬️ 공기청정 관제</h1>
-        <div id="status_box" class="disconnected">연결 대기</div>
-    </div>
+    <main class="app_shell">
+        <header class="top_bar">
+            <div>
+                <p class="eyebrow">Clean Station</p>
+                <h1>공기 정화 로봇</h1>
+            </div>
+            <div id="status_box" class="status-pill disconnected">연결 대기</div>
+        </header>
 
-    <div class="card">
-        <div id="map"></div> 
-    </div>
+        <section class="dashboard_grid">
+            <div class="controls_column">
+                <section class="hero_card">
+                    <div class="air_header">
+                        <div>
+                            <p class="section_label">실시간 공기질</p>
+                            <div id="air_quality_label" class="air_quality_text">센서 대기 중</div>
+                        </div>
+                        <div id="air_ring" class="air_ring" aria-hidden="true"></div>
+                    </div>
+                    <div class="pm_display">
+                        <span id="pm25_value">--</span>
+                        <span class="metric_unit">ug/m3</span>
+                    </div>
+                    <div class="quick_stats">
+                        <div class="metric">
+                            <div class="metric_label">로봇 위치</div>
+                            <div class="metric_value"><span id="pose_value">대기</span></div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric_label">운전 모드</div>
+                            <div id="mode_value" class="metric_value">수동 제어</div>
+                        </div>
+                    </div>
+                </section>
 
-    <div class="card" style="display:flex; gap:10px;">
-        <button id="btn_manual" class="btn active" onclick="setMode('manual')">수동</button>
-        <button id="btn_auto" class="btn" onclick="setMode('auto')">자동</button>
-    </div>
+                <section class="panel predictive_panel">
+                    <div class="panel_header">
+                        <div>
+                            <p class="section_label">Predictive Care</p>
+                            <h2 class="panel_title">선제 대응</h2>
+                        </div>
+                    </div>
+                    <div class="prediction_topline">
+                        <div>
+                            <p class="section_label">다음 점검 후보</p>
+                            <div id="prediction_target">계산 대기</div>
+                        </div>
+                        <div id="prediction_score">--점</div>
+                    </div>
+                    <p id="prediction_reason" class="prediction_reason">실시간 PM2.5, 장소 위험도, 시간대, 외부 미세먼지를 함께 반영합니다.</p>
+                    <div class="prediction_grid">
+                        <div class="metric">
+                            <div class="metric_label">외부 PM2.5</div>
+                            <input id="outdoor_pm25_input" class="prediction_input" type="number" min="0" max="300" value="55" inputmode="numeric" aria-label="외부 PM2.5">
+                        </div>
+                        <div class="metric">
+                            <div class="metric_label">예측 기준</div>
+                            <div id="prediction_basis" class="metric_value">현재 시간 + 실측값</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric_label">팬 ON 기준</div>
+                            <div id="adaptive_threshold_value" class="metric_value">100</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric_label">외부 데이터</div>
+                            <div id="outdoor_pm25_source" class="metric_value">수동 입력</div>
+                        </div>
+                    </div>
+                </section>
 
-    <div class="card">
-        <div id="zone_joystick"></div>
-    </div>
+                <section class="panel">
+                    <div class="panel_header">
+                        <div>
+                            <p class="section_label">Control Mode</p>
+                            <h2 class="panel_title">운전 선택</h2>
+                        </div>
+                    </div>
+                    <div class="mode_switch">
+                        <button id="btn_manual" class="btn active" onclick="setMode('manual')">수동</button>
+                        <button id="btn_auto" class="btn" onclick="setMode('auto')">자동</button>
+                    </div>
+                </section>
+            </div>
+
+            <section class="panel">
+                <div class="panel_header">
+                    <div>
+                        <p class="section_label">Live Map</p>
+                        <h2 class="panel_title">주행 지도</h2>
+                    </div>
+                </div>
+                <div id="map">
+                    <canvas id="map_canvas"></canvas>
+                    <div id="map_status">맵 대기</div>
+                </div>
+            </section>
+        </section>
+
+        <section class="panel joystick_panel">
+            <div class="panel_header">
+                <div>
+                    <p class="section_label">Manual Drive</p>
+                    <h2 class="panel_title">조이스틱</h2>
+                </div>
+            </div>
+            <div id="zone_joystick"></div>
+        </section>
+    </main>
 
     <script>
         // 현재 브라우저가 접속한 IP(노트북 IP)를 자동으로 가져와서 9090 포트에 연결
-        var ros = new ROSLIB.Ros({ url : 'ws://' + window.location.hostname + ':9090' });
-        var viewer = null;
-        var gridClient = null;
+        var ros = new ROSLIB.Ros();
+        var mapTopic = null;
+        var poseTopic = null;
+        var pmTopic = null;
+        var outdoorPm25Topic = null;
+        var adaptiveThresholdTopic = null;
+        var outdoorPm25FromRos = null;
+        var outdoorPm25UpdatedAt = 0;
+        var adaptiveThreshold = 100;
+        var mapStarted = false;
+        var rosConnected = false;
+        var lastMapMsg = null;
+        var lastPose = null;
+        var mapDrawState = null;
+        var currentPm25 = null;
+        var predictionZones = [
+            { id: 'kitchen', label: '부엌', type: 'kitchen', distance: 1.2, recentVisitMinutes: 90, lastPm25: null, mapX: 0.72, mapY: 0.28 },
+            { id: 'bathroom', label: '화장실', type: 'bathroom', distance: 1.6, recentVisitMinutes: 70, lastPm25: null, mapX: 0.25, mapY: 0.32 },
+            { id: 'entry', label: '출입구', type: 'entry', distance: 0.8, recentVisitMinutes: 55, lastPm25: null, mapX: 0.50, mapY: 0.82 },
+            { id: 'window', label: '창문', type: 'window', distance: 1.4, recentVisitMinutes: 50, lastPm25: null, mapX: 0.86, mapY: 0.55 },
+            { id: 'corridor', label: '복도', type: 'corridor', distance: 0.5, recentVisitMinutes: 35, lastPm25: null, mapX: 0.48, mapY: 0.52 }
+        ];
+        var latestPrediction = [];
 
         ros.on('connection', () => { 
-            document.getElementById('status_box').innerText = '연결됨 🟢'; 
+            rosConnected = true;
+            document.getElementById('status_box').innerText = '연결됨'; 
             document.getElementById('status_box').className = 'connected';
-            
-            // 연결 직후 0.5초 뒤에 맵 초기화 (데이터 로딩 지연 대응)
-            setTimeout(initMap, 500);
+            initMap();
         });
 
         ros.on('error', () => {
-            document.getElementById('status_box').innerText = '연결 에러 🔴';
+            rosConnected = false;
+            document.getElementById('status_box').innerText = '연결 에러';
             document.getElementById('status_box').className = 'disconnected';
+            document.getElementById('map_status').innerText = 'ROS 연결 에러';
         });
 
         ros.on('close', () => {
-            document.getElementById('status_box').innerText = '연결 끊김 🔴';
+            rosConnected = false;
+            mapStarted = false;
+            mapTopic = null;
+            document.getElementById('status_box').innerText = '연결 끊김';
             document.getElementById('status_box').className = 'disconnected';
+            document.getElementById('map_status').innerText = '재연결 대기';
+            setTimeout(connectRos, 1000);
         });
 
+        function connectRos() {
+            if (rosConnected) return;
+            ros.connect('ws://' + window.location.hostname + ':9090');
+        }
+
         function initMap() {
-            if (viewer) return; // 이미 초기화됐다면 중복 실행 방지
+            if (mapStarted) return;
+            mapStarted = true;
 
-            var mapDiv = document.getElementById('map');
-            
-            // 1. Viewer 설정: 맵을 담을 캔버스 생성
-            viewer = new ROS2D.Viewer({
-                divID: 'map',
-                width: mapDiv.offsetWidth, // 현재 화면의 폭에 맞춤
-                height: 350
-            });
-
-            // 2. OccupancyGridClient 설정: /map 토픽 구독
-            gridClient = new ROS2D.OccupancyGridClient({
+            mapTopic = new ROSLIB.Topic({
                 ros: ros,
-                rootObject: viewer.scene,
-topic: '/map',                
-continuous: true // 실시간 맵 업데이트 활성화
+                name: '/map_web',
+                messageType: 'nav_msgs/OccupancyGrid'
             });
 
-            // 3. 맵 데이터가 들어오면 화면 크기에 맞게 자동 조정
-            gridClient.on('change', function() {
-                viewer.scaleToDimensions(gridClient.currentGrid.width, gridClient.currentGrid.height);
-                viewer.shift(gridClient.currentGrid.pose.position.x, gridClient.currentGrid.pose.position.y);
+            document.getElementById('map_status').innerText = '/map_web 구독 중';
+            mapTopic.subscribe(drawOccupancyGrid);
+
+            poseTopic = new ROSLIB.Topic({
+                ros: ros,
+                name: '/robot_pose_web',
+                messageType: 'geometry_msgs/PoseStamped'
+            });
+            poseTopic.subscribe(function(msg) {
+                lastPose = msg.pose;
+                lastPose.frame_id = msg.header.frame_id;
+                updatePoseLabel(lastPose);
+                redrawMap();
+            });
+
+            pmTopic = new ROSLIB.Topic({
+                ros: ros,
+                name: '/pms7003/pm25',
+                messageType: 'std_msgs/Int32'
+            });
+            pmTopic.subscribe(function(msg) {
+                updatePmUi(msg.data);
+            });
+
+            outdoorPm25Topic = new ROSLIB.Topic({
+                ros: ros,
+                name: '/air_quality/outdoor_pm25',
+                messageType: 'std_msgs/Int32'
+            });
+            outdoorPm25Topic.subscribe(function(msg) {
+                outdoorPm25FromRos = Number(msg.data);
+                outdoorPm25UpdatedAt = Date.now();
+                var input = document.getElementById('outdoor_pm25_input');
+                if (input && Number.isFinite(outdoorPm25FromRos)) {
+                    input.value = String(outdoorPm25FromRos);
+                }
+                updatePredictiveCare();
+            });
+
+            adaptiveThresholdTopic = new ROSLIB.Topic({
+                ros: ros,
+                name: '/air_quality/adaptive_threshold',
+                messageType: 'std_msgs/Int32'
+            });
+            adaptiveThresholdTopic.subscribe(function(msg) {
+                adaptiveThreshold = Number(msg.data);
+                updatePredictiveCare();
             });
         }
 
+        connectRos();
+
+        function drawOccupancyGrid(msg) {
+            lastMapMsg = msg;
+            redrawMap();
+        }
+
+        function redrawMap() {
+            if (!lastMapMsg) return;
+            var msg = lastMapMsg;
+            var width = msg.info.width;
+            var height = msg.info.height;
+            var canvas = document.getElementById('map_canvas');
+            var status = document.getElementById('map_status');
+            var ctx = canvas.getContext('2d');
+
+            var rect = canvas.getBoundingClientRect();
+            var deviceRatio = window.devicePixelRatio || 1;
+            var targetWidth = Math.max(1, Math.floor(rect.width * deviceRatio));
+            var targetHeight = Math.max(1, Math.floor(rect.height * deviceRatio));
+
+            if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+            }
+
+            var offscreen = document.createElement('canvas');
+            offscreen.width = width;
+            offscreen.height = height;
+            var offCtx = offscreen.getContext('2d');
+            var image = offCtx.createImageData(width, height);
+
+            for (var y = 0; y < height; y++) {
+                for (var x = 0; x < width; x++) {
+                    var srcIndex = (height - 1 - y) * width + x;
+                    var dstIndex = (y * width + x) * 4;
+                    var value = msg.data[srcIndex];
+                    var color = 205;
+
+                    if (value === -1) {
+                        color = 132;
+                    } else if (value >= 65) {
+                        color = 22;
+                    } else if (value <= 25) {
+                        color = 245;
+                    }
+
+                    image.data[dstIndex] = color;
+                    image.data[dstIndex + 1] = color;
+                    image.data[dstIndex + 2] = color;
+                    image.data[dstIndex + 3] = 255;
+                }
+            }
+
+            offCtx.putImageData(image, 0, 0);
+
+            ctx.fillStyle = '#1c1c1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            var scale = Math.min(canvas.width / width, canvas.height / height);
+            var drawWidth = width * scale;
+            var drawHeight = height * scale;
+            var dx = (canvas.width - drawWidth) / 2;
+            var dy = (canvas.height - drawHeight) / 2;
+            mapDrawState = { dx: dx, dy: dy, scale: scale, width: width, height: height, info: msg.info };
+
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(offscreen, dx, dy, drawWidth, drawHeight);
+            drawPredictiveZoneHints(ctx);
+            drawRobotPose(ctx);
+            status.innerText = '맵 수신 ' + width + 'x' + height;
+        }
+
+        function drawPredictiveZoneHints(ctx) {
+            if (!mapDrawState || latestPrediction.length === 0) return;
+
+            var pixelRatio = window.devicePixelRatio || 1;
+            latestPrediction.slice(0, 4).forEach(function(zone, index) {
+                var canvasX = mapDrawState.dx + zone.mapX * mapDrawState.width * mapDrawState.scale;
+                var canvasY = mapDrawState.dy + zone.mapY * mapDrawState.height * mapDrawState.scale;
+                var radius = Math.max(8, (index === 0 ? 12 : 9) * pixelRatio);
+                var color = zone.score >= 78 ? '#d76b48' : (zone.score >= 52 ? '#b8872e' : '#4577ff');
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(canvasX, canvasY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = index === 0 ? 0.92 : 0.7;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = (index === 0 ? 3 : 2) * pixelRatio;
+                ctx.stroke();
+                ctx.font = (12 * pixelRatio) + 'px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(index === 0 ? '!' : String(index + 1), canvasX, canvasY + 4 * pixelRatio);
+                ctx.restore();
+            });
+        }
+
+        function drawRobotPose(ctx) {
+            if (!lastPose || !mapDrawState) return;
+            if (lastPose.frame_id !== 'map') return;
+
+            var info = mapDrawState.info;
+            var mapX = (lastPose.position.x - info.origin.position.x) / info.resolution;
+            var mapY = (lastPose.position.y - info.origin.position.y) / info.resolution;
+            var canvasX = mapDrawState.dx + mapX * mapDrawState.scale;
+            var canvasY = mapDrawState.dy + (mapDrawState.height - mapY) * mapDrawState.scale;
+            var yaw = quaternionToYaw(lastPose.orientation);
+            var pixelRatio = window.devicePixelRatio || 1;
+            var radius = Math.max(8, 7 * pixelRatio);
+
+            ctx.save();
+            ctx.translate(canvasX, canvasY);
+            ctx.rotate(-yaw);
+            ctx.fillStyle = '#27786b';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3 * pixelRatio;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(radius + 4, 0);
+            ctx.lineTo(-radius * 0.35, -radius * 0.55);
+            ctx.lineTo(-radius * 0.35, radius * 0.55);
+            ctx.closePath();
+            ctx.fillStyle = '#4577ff';
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function quaternionToYaw(q) {
+            var siny = 2.0 * (q.w * q.z + q.x * q.y);
+            var cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+            return Math.atan2(siny, cosy);
+        }
+
+        function updatePoseLabel(pose) {
+            var frame = pose.frame_id ? ' (' + pose.frame_id + ')' : '';
+            document.getElementById('pose_value').innerText =
+                'x ' + pose.position.x.toFixed(2) + ', y ' + pose.position.y.toFixed(2) + frame;
+        }
+
         // --- 조이스틱 및 모드 제어 ---
-        var cmdVel = new ROSLIB.Topic({ ros: ros, name: '/cmd_vel', messageType: 'geometry_msgs/Twist' });
+        var cmdVel = new ROSLIB.Topic({ ros: ros, name: '/cmd_vel', messageType: 'geometry_msgs/TwistStamped' });
         var modeTopic = new ROSLIB.Topic({ ros: ros, name: '/robot_mode', messageType: 'std_msgs/String' });
 
         function setMode(mode) {
             document.getElementById('btn_manual').className = (mode === 'manual') ? 'btn active' : 'btn';
             document.getElementById('btn_auto').className = (mode === 'auto') ? 'btn active' : 'btn';
+            document.getElementById('mode_value').innerText = (mode === 'manual') ? '수동 제어' : '자동 정화';
             modeTopic.publish(new ROSLIB.Message({ data: mode }));
         }
+
+        function updatePmUi(value) {
+            var pmValue = Number(value);
+            currentPm25 = Number.isFinite(pmValue) ? pmValue : null;
+            document.getElementById('pm25_value').innerText = value;
+
+            var label = document.getElementById('air_quality_label');
+            var ring = document.getElementById('air_ring');
+            var color = '#27786b';
+            var percent = 76;
+
+            if (pmValue > 75) {
+                label.innerText = '정화 필요';
+                color = '#d76b48';
+                percent = 94;
+            } else if (pmValue > 35) {
+                label.innerText = '주의 상태';
+                color = '#b8872e';
+                percent = 64;
+            } else {
+                label.innerText = '쾌적한 상태';
+                percent = 38;
+            }
+
+            ring.style.background = 'conic-gradient(' + color + ' 0 ' + percent + '%, #e6ebe7 ' + percent + '% 100%)';
+            updatePredictiveCare();
+        }
+
+        function updatePredictiveCare() {
+            if (!window.PredictiveAirQuality) return;
+
+            var hour = new Date().getHours();
+            var outdoorInput = document.getElementById('outdoor_pm25_input');
+            var outdoorPm25 = Number(outdoorInput ? outdoorInput.value : 0);
+            var thresholdValue = Number.isFinite(adaptiveThreshold)
+                ? adaptiveThreshold
+                : window.PredictiveAirQuality.calculateAdaptiveThreshold(outdoorPm25);
+            var thresholdEl = document.getElementById('adaptive_threshold_value');
+            if (thresholdEl) thresholdEl.innerText = String(thresholdValue);
+
+            var sourceEl = document.getElementById('outdoor_pm25_source');
+            if (sourceEl) sourceEl.innerText = outdoorPm25FromRos == null ? '수동 입력' : 'ROS 수신';
+
+            var pmForPrediction = currentPm25 == null ? 0 : currentPm25;
+            var zones = predictionZones.map(function(zone) {
+                var measuredBoost = zone.type === 'kitchen' || zone.type === 'bathroom' ? pmForPrediction : Math.round(pmForPrediction * 0.7);
+                return Object.assign({}, zone, {
+                    lastPm25: currentPm25 == null ? zone.lastPm25 : Math.max(zone.lastPm25 || 0, measuredBoost)
+                });
+            });
+
+            latestPrediction = window.PredictiveAirQuality.rankPredictiveZones(zones, {
+                hour: hour,
+                currentPm25: pmForPrediction,
+                outdoorPm25: Number.isFinite(outdoorPm25) ? outdoorPm25 : 0
+            });
+
+            var top = latestPrediction[0];
+            if (!top) return;
+
+            document.getElementById('prediction_target').innerText = top.label + ' · ' + top.priority;
+            document.getElementById('prediction_score').innerText = top.score + '점';
+            document.getElementById('prediction_reason').innerText = top.reasons.slice(0, 3).join(' + ');
+            document.getElementById('prediction_basis').innerText = hour + '시 기준 · PM2.5 ' + (currentPm25 == null ? '대기' : currentPm25);
+            redrawMap();
+        }
+
+        var outdoorPm25Input = document.getElementById('outdoor_pm25_input');
+        if (outdoorPm25Input) {
+            outdoorPm25Input.addEventListener('input', function() {
+                if (window.PredictiveAirQuality) {
+                    adaptiveThreshold = window.PredictiveAirQuality.calculateAdaptiveThreshold(Number(outdoorPm25Input.value));
+                }
+                updatePredictiveCare();
+            });
+        }
+        updatePredictiveCare();
 
         var joystick = nipplejs.create({ 
             zone: document.getElementById('zone_joystick'), 
             mode: 'static', position: {left: '50%', top: '50%'}, 
-            color: '#007AFF', size: 130 
+            color: '#27786b', size: 92 
         });
         
         joystick.on('move', (evt, data) => {
             var linear = Math.sin(data.angle.radian) * 0.22 * (data.distance / 65);
             var angular = -Math.cos(data.angle.radian) * 1.2 * (data.distance / 65);
-            cmdVel.publish(new ROSLIB.Message({ linear: {x: linear, y:0, z:0}, angular: {x:0, y:0, z:angular} }));
+            cmdVel.publish(new ROSLIB.Message({ header: { frame_id: '' }, twist: { linear: {x: linear, y:0, z:0}, angular: {x:0, y:0, z:angular} } }));
         });
         
         joystick.on('end', () => { 
-            cmdVel.publish(new ROSLIB.Message({ linear: {x:0, y:0, z:0}, angular: {x:0, y:0, z:0} })); 
+            cmdVel.publish(new ROSLIB.Message({ header: { frame_id: '' }, twist: { linear: {x:0, y:0, z:0}, angular: {x:0, y:0, z:0} } })); 
         });
     </script>
 </body>
