@@ -30,6 +30,10 @@
 
         * { box-sizing: border-box; }
 
+        [hidden] {
+            display: none !important;
+        }
+
         body {
             min-height: 100vh;
             margin: 0;
@@ -272,6 +276,34 @@
             background: #ecefea;
         }
 
+        .zone_focus_grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .manual_fan_controls {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .zone_btn {
+            min-height: 38px;
+            padding: 8px 8px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--surface-strong);
+            color: #4e5753;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .zone_btn.active {
+            border-color: rgba(39, 120, 107, 0.55);
+            background: var(--green-soft);
+            color: #145b50;
+        }
+
         .btn {
             width: 100%;
             min-height: 40px;
@@ -305,13 +337,6 @@
             align-items: flex-start;
             justify-content: space-between;
             gap: 10px;
-        }
-
-        #prediction_target {
-            margin: 3px 0 0;
-            font-size: 18px;
-            line-height: 1.18;
-            font-weight: 880;
         }
 
         #prediction_score {
@@ -471,116 +496,435 @@
                 gap: 14px;
             }
         }
+
+
+        body {
+            height: 100dvh;
+            min-height: 100dvh;
+            overflow: hidden;
+            background: #eef1f2;
+            color: #17201c;
+        }
+
+        .app_shell {
+            width: min(100%, 1180px);
+            height: 100dvh;
+            min-height: 0;
+            padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+            gap: 8px;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+        }
+
+        .ops_header,
+        .command_dock,
+        .drawer {
+            border: 1px solid #d7dddf;
+            background: #fbfcfb;
+            box-shadow: 0 10px 26px rgba(25, 35, 32, 0.08);
+        }
+
+        .ops_header {
+            border-radius: 8px;
+            padding: 8px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .ops_title_row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ops_title {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.1;
+            font-weight: 850;
+        }
+
+        .ops_subtitle {
+            margin: 2px 0 0;
+            color: #60706b;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        #status_box,
+        #status_box.connected,
+        #status_box.disconnected,
+        .connected,
+        .disconnected {
+            min-width: 76px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 850;
+            text-align: center;
+        }
+
+        #status_box.connected,
+        .connected {
+            border: 1px solid #9fcbc0;
+            background: #e7f4f1;
+            color: #135c51;
+        }
+
+        #status_box.disconnected,
+        .disconnected {
+            border: 1px solid #e7b9a6;
+            background: #fff0e9;
+            color: #9a4528;
+        }
+
+        .status_grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .metric_compact {
+            min-width: 0;
+            min-height: 48px;
+            padding: 7px 8px;
+            border: 1px solid #dfe5e6;
+            border-radius: 6px;
+            background: #ffffff;
+            display: grid;
+            align-content: center;
+            gap: 3px;
+        }
+
+        .metric_compact.pm {
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            column-gap: 8px;
+        }
+
+        .compact_label {
+            color: #697773;
+            font-size: 10px;
+            font-weight: 850;
+        }
+
+        .compact_value {
+            min-width: 0;
+            color: #17201c;
+            font-size: 13px;
+            line-height: 1.15;
+            font-weight: 850;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pm_value_line {
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
+        }
+
+        #pm25_value {
+            font-size: 25px;
+            line-height: 0.95;
+            font-weight: 900;
+        }
+
+        .metric_unit {
+            font-size: 10px;
+            font-weight: 850;
+        }
+
+        .air_ring {
+            width: 30px;
+            height: 30px;
+        }
+
+        .air_ring::after {
+            width: 18px;
+            height: 18px;
+        }
+
+        .map_panel {
+            min-height: 0;
+            border: 1px solid #cbd2d5;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #151a18;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            border-radius: 0;
+            background: #151a18;
+        }
+
+        .map_overlay {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            pointer-events: none;
+        }
+
+        .status_chip {
+            max-width: 100%;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: rgba(251, 252, 251, 0.92);
+            color: #17201c;
+            font-size: 11px;
+            font-weight: 850;
+            line-height: 1.1;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+        }
+
+        #map_status {
+            left: 8px;
+            bottom: 8px;
+            border-radius: 6px;
+        }
+
+        .command_dock {
+            border-radius: 8px;
+            padding: 8px;
+            display: grid;
+            gap: 7px;
+        }
+
+        .mode_switch {
+            padding: 3px;
+            border-radius: 7px;
+            background: #e3e8e8;
+        }
+
+        .btn {
+            min-height: 38px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .btn.active {
+            background: #17201c;
+            color: #ffffff;
+            box-shadow: none;
+        }
+
+        .zone_focus_grid {
+            margin-top: 0;
+            gap: 6px;
+        }
+
+        .zone_btn {
+            min-height: 38px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: #ffffff;
+        }
+
+        .zone_btn.active {
+            border-color: #5fa99c;
+            background: #e5f4f0;
+            color: #145b50;
+        }
+
+        .utility_row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .utility_row.single_action {
+            grid-template-columns: 1fr;
+        }
+
+        .utility_btn {
+            min-height: 36px;
+            border: 1px solid #cfd7d9;
+            border-radius: 6px;
+            background: #f7f9f9;
+            color: #25302c;
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .utility_btn.active {
+            border-color: #4a7cff;
+            background: #edf2ff;
+            color: #244ca8;
+        }
+
+        .drawer {
+            position: fixed;
+            left: 8px;
+            right: 8px;
+            bottom: calc(8px + env(safe-area-inset-bottom));
+            z-index: 30;
+            max-width: 540px;
+            margin: 0 auto;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .drawer[hidden] {
+            display: none;
+        }
+
+        .drawer_header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .drawer_title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        #zone_joystick {
+            height: 154px;
+            border-radius: 6px;
+        }
+
+        #prediction_score {
+            min-width: 0;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: #17201c;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .prediction_reason {
+            font-size: 12px;
+            line-height: 1.3;
+        }
+
+        .prediction_input {
+            min-height: 30px;
+            margin-top: 3px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        @media (min-width: 760px) {
+            .app_shell {
+                padding: 12px;
+                grid-template-columns: 300px minmax(0, 1fr);
+                grid-template-rows: auto minmax(0, 1fr);
+            }
+
+            .ops_header {
+                grid-column: 1 / -1;
+            }
+
+            .status_grid {
+                grid-template-columns: 0.9fr 0.8fr 1.15fr 0.9fr;
+            }
+
+            .map_panel {
+                grid-column: 2;
+                grid-row: 2;
+            }
+
+            .command_dock {
+                grid-column: 1;
+                grid-row: 2;
+                align-self: start;
+            }
+
+            .drawer {
+                left: 12px;
+                right: auto;
+                bottom: 12px;
+                width: 300px;
+            }
+        }
+
     </style>
 </head>
 <body>
     <main class="app_shell">
-        <header class="top_bar">
-            <div>
-                <p class="eyebrow">Clean Station</p>
-                <h1>공기 정화 로봇</h1>
+        <header class="ops_header">
+            <div class="ops_title_row">
+                <div>
+                    <h1 class="ops_title">정화 로봇 관제</h1>
+                    <p class="ops_subtitle">자동 정화주행 · 구역 집중 순찰</p>
+                </div>
+                <div id="status_box" class="disconnected">연결 대기</div>
             </div>
-            <div id="status_box" class="status-pill disconnected">연결 대기</div>
-        </header>
-
-        <section class="dashboard_grid">
-            <div class="controls_column">
-                <section class="hero_card">
-                    <div class="air_header">
-                        <div>
-                            <p class="section_label">실시간 공기질</p>
-                            <div id="air_quality_label" class="air_quality_text">센서 대기 중</div>
-                        </div>
-                        <div id="air_ring" class="air_ring" aria-hidden="true"></div>
-                    </div>
-                    <div class="pm_display">
-                        <span id="pm25_value">--</span>
-                        <span class="metric_unit">ug/m3</span>
-                    </div>
-                    <div class="quick_stats">
-                        <div class="metric">
-                            <div class="metric_label">로봇 위치</div>
-                            <div class="metric_value"><span id="pose_value">대기</span></div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric_label">운전 모드</div>
-                            <div id="mode_value" class="metric_value">수동 제어</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="panel predictive_panel">
-                    <div class="panel_header">
-                        <div>
-                            <p class="section_label">Predictive Care</p>
-                            <h2 class="panel_title">선제 대응</h2>
-                        </div>
-                    </div>
-                    <div class="prediction_topline">
-                        <div>
-                            <p class="section_label">다음 점검 후보</p>
-                            <div id="prediction_target">계산 대기</div>
-                        </div>
-                        <div id="prediction_score">--점</div>
-                    </div>
-                    <p id="prediction_reason" class="prediction_reason">실시간 PM2.5, 장소 위험도, 시간대, 외부 미세먼지를 함께 반영합니다.</p>
-                    <div class="prediction_grid">
-                        <div class="metric">
-                            <div class="metric_label">외부 PM2.5</div>
-                            <input id="outdoor_pm25_input" class="prediction_input" type="number" min="0" max="300" value="55" inputmode="numeric" aria-label="외부 PM2.5">
-                        </div>
-                        <div class="metric">
-                            <div class="metric_label">예측 기준</div>
-                            <div id="prediction_basis" class="metric_value">현재 시간 + 실측값</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric_label">팬 ON 기준</div>
-                            <div id="adaptive_threshold_value" class="metric_value">100</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric_label">외부 데이터</div>
-                            <div id="outdoor_pm25_source" class="metric_value">수동 입력</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="panel">
-                    <div class="panel_header">
-                        <div>
-                            <p class="section_label">Control Mode</p>
-                            <h2 class="panel_title">운전 선택</h2>
-                        </div>
-                    </div>
-                    <div class="mode_switch">
-                        <button id="btn_manual" class="btn active" onclick="setMode('manual')">수동</button>
-                        <button id="btn_auto" class="btn" onclick="setMode('auto')">자동</button>
-                    </div>
-                </section>
-            </div>
-
-            <section class="panel">
-                <div class="panel_header">
+            <section class="status_grid" aria-label="실시간 상태">
+                <div class="metric_compact pm">
+                    <div id="air_ring" class="air_ring" aria-hidden="true"></div>
                     <div>
-                        <p class="section_label">Live Map</p>
-                        <h2 class="panel_title">주행 지도</h2>
+                        <div class="compact_label">PM2.5</div>
+                        <div class="pm_value_line">
+                            <span id="pm25_value">--</span>
+                            <span class="metric_unit">ug/m3</span>
+                        </div>
                     </div>
                 </div>
-                <div id="map">
-                    <canvas id="map_canvas"></canvas>
-                    <div id="map_status">맵 대기</div>
+                <div class="metric_compact">
+                    <div class="compact_label">운전 모드</div>
+                    <div id="mode_value" class="compact_value">수동 제어</div>
+                </div>
+                <div class="metric_compact">
+                    <div class="compact_label">로봇 위치</div>
+                    <div class="compact_value"><span id="pose_value">대기</span></div>
+                </div>
+                <div class="metric_compact">
+                    <div class="compact_label">외부 PM2.5</div>
+                    <div id="outdoor_pm25_value" class="compact_value">대기</div>
+                    <div id="outdoor_pm25_status" class="compact_label">API 대기</div>
                 </div>
             </section>
+        </header>
+
+        <section class="map_panel" aria-label="주행 지도">
+            <div id="map">
+                <canvas id="map_canvas"></canvas>
+                <div class="map_overlay">
+                    <div id="air_quality_label" class="status_chip">센서 대기 중</div>
+                    <div id="target_zone_label" class="status_chip">선택: 전체</div>
+                </div>
+                <div id="map_status">맵 대기</div>
+            </div>
         </section>
 
-        <section class="panel joystick_panel">
-            <div class="panel_header">
-                <div>
-                    <p class="section_label">Manual Drive</p>
-                    <h2 class="panel_title">조이스틱</h2>
-                </div>
+        <section class="command_dock" aria-label="운전 명령">
+            <div class="mode_switch">
+                <button id="btn_manual" class="btn active" onclick="setMode('manual')">수동</button>
+                <button id="btn_auto" class="btn" onclick="setMode('auto')">자동</button>
+            </div>
+            <div id="auto_controls" class="zone_focus_grid" hidden>
+                <button id="zone_all" class="zone_btn active" onclick="setTargetZone('all')">전체</button>
+                <button id="zone_kitchen" class="zone_btn" onclick="setTargetZone('kitchen')">주방 집중</button>
+            </div>
+            <div id="manual_fan_controls" class="zone_focus_grid manual_fan_controls">
+                <button id="btn_fan_on" class="zone_btn" onclick="setManualFan(true)">팬 ON</button>
+                <button id="btn_fan_off" class="zone_btn active" onclick="setManualFan(false)">팬 OFF</button>
+            </div>
+        </section>
+
+        <section id="joystick_drawer" class="drawer" hidden>
+            <div class="drawer_header">
+                <h2 class="drawer_title">수동 조이스틱</h2>
+                <button class="utility_btn" onclick="toggleJoystick(false)">닫기</button>
             </div>
             <div id="zone_joystick"></div>
         </section>
+
     </main>
 
     <script>
@@ -593,21 +937,30 @@
         var adaptiveThresholdTopic = null;
         var outdoorPm25FromRos = null;
         var outdoorPm25UpdatedAt = 0;
-        var adaptiveThreshold = 100;
+        var adaptiveThreshold = 50;
         var mapStarted = false;
         var rosConnected = false;
         var lastMapMsg = null;
         var lastPose = null;
         var mapDrawState = null;
         var currentPm25 = null;
-        var predictionZones = [
-            { id: 'kitchen', label: '부엌', type: 'kitchen', distance: 1.2, recentVisitMinutes: 90, lastPm25: null, mapX: 0.72, mapY: 0.28 },
-            { id: 'bathroom', label: '화장실', type: 'bathroom', distance: 1.6, recentVisitMinutes: 70, lastPm25: null, mapX: 0.25, mapY: 0.32 },
-            { id: 'entry', label: '출입구', type: 'entry', distance: 0.8, recentVisitMinutes: 55, lastPm25: null, mapX: 0.50, mapY: 0.82 },
-            { id: 'window', label: '창문', type: 'window', distance: 1.4, recentVisitMinutes: 50, lastPm25: null, mapX: 0.86, mapY: 0.55 },
-            { id: 'corridor', label: '복도', type: 'corridor', distance: 0.5, recentVisitMinutes: 35, lastPm25: null, mapX: 0.48, mapY: 0.52 }
+        var purifierStatusOverride = null;
+        var purifierStatusUntil = 0;
+        var MAP_VIEW_SCALE = 1.18;
+        var MAP_DOT_RADIUS_PX = 9;
+        var patrolWaypoints = [
+            { id: 'wp_1', label: '순찰 1', type: 'corridor', x: 3.07, y: 4.98, yaw: -1.59, distance: 1.0, recentVisitMinutes: 60, lastPm25: null },
+            { id: 'wp_2', label: '순찰 2', type: 'entry', x: 5.18, y: 1.62, yaw: 0.05, distance: 1.4, recentVisitMinutes: 60, lastPm25: null },
+            { id: 'wp_3', label: '순찰 3', type: 'window', x: 8.00, y: 1.40, yaw: 1.47, distance: 1.8, recentVisitMinutes: 60, lastPm25: null },
+            { id: 'kitchen', label: '주방', type: 'kitchen', x: 7.50, y: 5.19, yaw: -2.90, distance: 1.2, recentVisitMinutes: 90, lastPm25: null },
+            { id: 'wp_5', label: '순찰 5', type: 'corridor', x: 5.42, y: 4.68, yaw: 3.01, distance: 0.8, recentVisitMinutes: 60, lastPm25: null }
+        ];
+        var displayOnlyMapDots = [
+            { x: 8.40, y: 4.00 },
+            { x: 2.82, y: 0.50 }
         ];
         var latestPrediction = [];
+        var kitchenBounds = { minX: 6.61, maxX: 8.33, minY: 1.40, maxY: 6.05, label: '주방' };
 
         ros.on('connection', () => { 
             rosConnected = true;
@@ -680,10 +1033,7 @@
             outdoorPm25Topic.subscribe(function(msg) {
                 outdoorPm25FromRos = Number(msg.data);
                 outdoorPm25UpdatedAt = Date.now();
-                var input = document.getElementById('outdoor_pm25_input');
-                if (input && Number.isFinite(outdoorPm25FromRos)) {
-                    input.value = String(outdoorPm25FromRos);
-                }
+                updateOutdoorPm25Ui(msg.data);
                 updatePredictiveCare();
             });
 
@@ -695,6 +1045,15 @@
             adaptiveThresholdTopic.subscribe(function(msg) {
                 adaptiveThreshold = Number(msg.data);
                 updatePredictiveCare();
+            });
+
+            purifierStatusTopic = new ROSLIB.Topic({
+                ros: ros,
+                name: '/purifier_status',
+                messageType: 'std_msgs/String'
+            });
+            purifierStatusTopic.subscribe(function(msg) {
+                setPurifierStatus(msg.data);
             });
         }
 
@@ -757,7 +1116,8 @@
             ctx.fillStyle = '#1c1c1e';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            var scale = Math.min(canvas.width / width, canvas.height / height);
+            var fitScale = Math.min(canvas.width / width, canvas.height / height);
+            var scale = fitScale * MAP_VIEW_SCALE;
             var drawWidth = width * scale;
             var drawHeight = height * scale;
             var dx = (canvas.width - drawWidth) / 2;
@@ -766,20 +1126,95 @@
 
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(offscreen, dx, dy, drawWidth, drawHeight);
+            drawKitchenBounds(ctx);
+            drawDisplayOnlyMapDots(ctx);
             drawPredictiveZoneHints(ctx);
             drawRobotPose(ctx);
             status.innerText = '맵 수신 ' + width + 'x' + height;
+        }
+
+        function worldToCanvas(x, y) {
+            if (!mapDrawState) return null;
+            var info = mapDrawState.info;
+            var mapX = (x - info.origin.position.x) / info.resolution;
+            var mapY = (y - info.origin.position.y) / info.resolution;
+            return {
+                x: mapDrawState.dx + mapX * mapDrawState.scale,
+                y: mapDrawState.dy + (mapDrawState.height - mapY) * mapDrawState.scale
+            };
+        }
+
+        function drawKitchenBounds(ctx) {
+            if (!mapDrawState || !kitchenBounds) return;
+
+            var a = worldToCanvas(kitchenBounds.minX, kitchenBounds.minY);
+            var b = worldToCanvas(kitchenBounds.maxX, kitchenBounds.maxY);
+            if (!a || !b) return;
+
+            var left = Math.min(a.x, b.x);
+            var top = Math.min(a.y, b.y);
+            var width = Math.abs(b.x - a.x);
+            var height = Math.abs(b.y - a.y);
+            var pixelRatio = window.devicePixelRatio || 1;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(215, 107, 72, 0.20)';
+            ctx.strokeStyle = '#ff8a5c';
+            ctx.lineWidth = Math.max(2, 2 * pixelRatio);
+            ctx.setLineDash([6 * pixelRatio, 4 * pixelRatio]);
+            ctx.fillRect(left, top, width, height);
+            ctx.strokeRect(left, top, width, height);
+            ctx.setLineDash([]);
+
+            ctx.font = (12 * pixelRatio) + 'px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            var label = kitchenBounds.label;
+            var paddingX = 6 * pixelRatio;
+            var paddingY = 4 * pixelRatio;
+            var textWidth = ctx.measureText(label).width;
+            var labelX = left + 6 * pixelRatio;
+            var labelY = top + 6 * pixelRatio;
+            ctx.fillStyle = 'rgba(23, 32, 28, 0.82)';
+            ctx.fillRect(labelX - paddingX, labelY - paddingY, textWidth + paddingX * 2, 18 * pixelRatio);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(label, labelX, labelY);
+            ctx.restore();
+        }
+
+        function drawDisplayOnlyMapDots(ctx) {
+            if (!mapDrawState || !displayOnlyMapDots.length) return;
+
+            var pixelRatio = window.devicePixelRatio || 1;
+            displayOnlyMapDots.forEach(function(dot) {
+                var point = worldToCanvas(dot.x, dot.y);
+                if (!point) return;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, Math.max(8, MAP_DOT_RADIUS_PX * pixelRatio), 0, Math.PI * 2);
+                ctx.fillStyle = '#4577ff';
+                ctx.globalAlpha = 0.78;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2 * pixelRatio;
+                ctx.stroke();
+                ctx.restore();
+            });
         }
 
         function drawPredictiveZoneHints(ctx) {
             if (!mapDrawState || latestPrediction.length === 0) return;
 
             var pixelRatio = window.devicePixelRatio || 1;
-            latestPrediction.slice(0, 4).forEach(function(zone, index) {
-                var canvasX = mapDrawState.dx + zone.mapX * mapDrawState.width * mapDrawState.scale;
-                var canvasY = mapDrawState.dy + zone.mapY * mapDrawState.height * mapDrawState.scale;
-                var radius = Math.max(8, (index === 0 ? 12 : 9) * pixelRatio);
-                var color = zone.score >= 78 ? '#d76b48' : (zone.score >= 52 ? '#b8872e' : '#4577ff');
+            latestPrediction.slice(0, 5).forEach(function(zone, index) {
+                var point = worldToCanvas(zone.x, zone.y);
+                if (!point) return;
+                var canvasX = point.x;
+                var canvasY = point.y;
+                var radius = Math.max(8, MAP_DOT_RADIUS_PX * pixelRatio);
+                var color = '#4577ff';
 
                 ctx.save();
                 ctx.beginPath();
@@ -791,10 +1226,6 @@
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = (index === 0 ? 3 : 2) * pixelRatio;
                 ctx.stroke();
-                ctx.font = (12 * pixelRatio) + 'px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(index === 0 ? '!' : String(index + 1), canvasX, canvasY + 4 * pixelRatio);
                 ctx.restore();
             });
         }
@@ -850,12 +1281,93 @@
         // --- 조이스틱 및 모드 제어 ---
         var cmdVel = new ROSLIB.Topic({ ros: ros, name: '/cmd_vel', messageType: 'geometry_msgs/TwistStamped' });
         var modeTopic = new ROSLIB.Topic({ ros: ros, name: '/robot_mode', messageType: 'std_msgs/String' });
+        var targetZoneTopic = new ROSLIB.Topic({ ros: ros, name: '/target_zone', messageType: 'std_msgs/String' });
+        var fanRelayTopic = new ROSLIB.Topic({ ros: ros, name: '/hardware/relay', messageType: 'std_msgs/Bool' });
+        var currentTargetZone = 'all';
 
         function setMode(mode) {
             document.getElementById('btn_manual').className = (mode === 'manual') ? 'btn active' : 'btn';
             document.getElementById('btn_auto').className = (mode === 'auto') ? 'btn active' : 'btn';
             document.getElementById('mode_value').innerText = (mode === 'manual') ? '수동 제어' : '자동 정화';
+            setControlPanelForMode(mode);
+            if (mode === 'manual') openJoystick();
+            if (mode === 'auto') closeJoystick();
             modeTopic.publish(new ROSLIB.Message({ data: mode }));
+        }
+
+        function setControlPanelForMode(mode) {
+            var manualControls = document.getElementById('manual_fan_controls');
+            var autoControls = document.getElementById('auto_controls');
+            if (manualControls) manualControls.hidden = mode !== 'manual';
+            if (autoControls) autoControls.hidden = mode !== 'auto';
+        }
+
+        function setManualFan(enabled) {
+            var onButton = document.getElementById('btn_fan_on');
+            var offButton = document.getElementById('btn_fan_off');
+            if (onButton) onButton.className = enabled ? 'zone_btn active' : 'zone_btn';
+            if (offButton) offButton.className = enabled ? 'zone_btn' : 'zone_btn active';
+            fanRelayTopic.publish(new ROSLIB.Message({ data: Boolean(enabled) }));
+        }
+
+        function targetZoneText(zone) {
+            if (zone === 'kitchen') return '선택: 주방 집중';
+            return '선택: 전체 순찰';
+        }
+
+        function updateTargetZoneLabel(zone) {
+            var text = targetZoneText(zone);
+            var label = document.getElementById('target_zone_label');
+            if (label) label.innerText = text;
+        }
+
+        function setTargetZone(zone) {
+            currentTargetZone = zone;
+            ['all', 'kitchen'].forEach(function(id) {
+                var button = document.getElementById('zone_' + id);
+                if (button) button.className = id === zone ? 'zone_btn active' : 'zone_btn';
+            });
+            updateTargetZoneLabel(zone);
+            targetZoneTopic.publish(new ROSLIB.Message({ data: zone }));
+            setMode('auto');
+        }
+
+
+        function setDrawerState(drawerId, buttonId, open) {
+            var drawer = document.getElementById(drawerId);
+            var button = buttonId ? document.getElementById(buttonId) : null;
+            if (!drawer) return;
+            drawer.hidden = !open;
+            if (button) button.className = open ? 'utility_btn active' : 'utility_btn';
+        }
+
+        function openJoystick() {
+            setDrawerState('joystick_drawer', null, true);
+            initJoystick();
+        }
+
+        function closeJoystick() {
+            var drawer = document.getElementById('joystick_drawer');
+            var wasOpen = drawer && !drawer.hidden;
+            setDrawerState('joystick_drawer', null, false);
+            if (wasOpen) publishStopCommand();
+        }
+
+        function toggleJoystick(forceOpen) {
+            if (forceOpen === false) closeJoystick();
+            else openJoystick();
+        }
+
+        function updateOutdoorPm25Ui(value) {
+            var outdoorValue = Number(value);
+            var valueEl = document.getElementById('outdoor_pm25_value');
+            var statusEl = document.getElementById('outdoor_pm25_status');
+            if (valueEl) {
+                valueEl.innerText = Number.isFinite(outdoorValue) ? outdoorValue + ' ug/m3' : '수신 오류';
+            }
+            if (statusEl) {
+                statusEl.innerText = Number.isFinite(outdoorValue) ? '방금 갱신' : 'API 확인 필요';
+            }
         }
 
         function updatePmUi(value) {
@@ -881,29 +1393,53 @@
                 percent = 38;
             }
 
+            if (purifierStatusOverride && Date.now() < purifierStatusUntil) {
+                label.innerText = purifierStatusOverride;
+                color = '#27786b';
+                percent = purifierStatusOverride === '정화 중' ? 82 : 38;
+            }
+
             ring.style.background = 'conic-gradient(' + color + ' 0 ' + percent + '%, #e6ebe7 ' + percent + '% 100%)';
             updatePredictiveCare();
+        }
+
+        function setPurifierStatus(status) {
+            if (status === 'purifying') {
+                purifierStatusOverride = '정화 중';
+                purifierStatusUntil = Date.now() + 8000;
+            } else if (status === 'cleaned') {
+                purifierStatusOverride = '정화 완료';
+                purifierStatusUntil = Date.now() + 12000;
+            } else if (status === 'returning') {
+                purifierStatusOverride = '복귀 중';
+                purifierStatusUntil = Date.now() + 30000;
+            } else if (status === 'returned') {
+                purifierStatusOverride = '출발지 복귀 완료';
+                purifierStatusUntil = Date.now() + 12000;
+            } else {
+                purifierStatusOverride = null;
+                purifierStatusUntil = 0;
+            }
+            if (currentPm25 !== null) updatePmUi(currentPm25);
         }
 
         function updatePredictiveCare() {
             if (!window.PredictiveAirQuality) return;
 
             var hour = new Date().getHours();
-            var outdoorInput = document.getElementById('outdoor_pm25_input');
-            var outdoorPm25 = Number(outdoorInput ? outdoorInput.value : 0);
+            var outdoorPm25 = outdoorPm25FromRos == null ? 0 : Number(outdoorPm25FromRos);
             var thresholdValue = Number.isFinite(adaptiveThreshold)
                 ? adaptiveThreshold
                 : window.PredictiveAirQuality.calculateAdaptiveThreshold(outdoorPm25);
-            var thresholdEl = document.getElementById('adaptive_threshold_value');
-            if (thresholdEl) thresholdEl.innerText = String(thresholdValue);
-
-            var sourceEl = document.getElementById('outdoor_pm25_source');
-            if (sourceEl) sourceEl.innerText = outdoorPm25FromRos == null ? '수동 입력' : 'ROS 수신';
 
             var pmForPrediction = currentPm25 == null ? 0 : currentPm25;
-            var zones = predictionZones.map(function(zone) {
+            var zones = patrolWaypoints.map(function(zone) {
+                var distanceToRobot = lastPose && lastPose.position
+                    ? Math.hypot(zone.x - lastPose.position.x, zone.y - lastPose.position.y)
+                    : zone.distance;
                 var measuredBoost = zone.type === 'kitchen' || zone.type === 'bathroom' ? pmForPrediction : Math.round(pmForPrediction * 0.7);
                 return Object.assign({}, zone, {
+                    distance: Number.isFinite(distanceToRobot) ? distanceToRobot : zone.distance,
                     lastPm25: currentPm25 == null ? zone.lastPm25 : Math.max(zone.lastPm25 || 0, measuredBoost)
                 });
             });
@@ -917,39 +1453,38 @@
             var top = latestPrediction[0];
             if (!top) return;
 
-            document.getElementById('prediction_target').innerText = top.label + ' · ' + top.priority;
-            document.getElementById('prediction_score').innerText = top.score + '점';
-            document.getElementById('prediction_reason').innerText = top.reasons.slice(0, 3).join(' + ');
-            document.getElementById('prediction_basis').innerText = hour + '시 기준 · PM2.5 ' + (currentPm25 == null ? '대기' : currentPm25);
             redrawMap();
         }
 
-        var outdoorPm25Input = document.getElementById('outdoor_pm25_input');
-        if (outdoorPm25Input) {
-            outdoorPm25Input.addEventListener('input', function() {
-                if (window.PredictiveAirQuality) {
-                    adaptiveThreshold = window.PredictiveAirQuality.calculateAdaptiveThreshold(Number(outdoorPm25Input.value));
-                }
-                updatePredictiveCare();
-            });
-        }
+        updateTargetZoneLabel(currentTargetZone);
         updatePredictiveCare();
 
-        var joystick = nipplejs.create({ 
-            zone: document.getElementById('zone_joystick'), 
-            mode: 'static', position: {left: '50%', top: '50%'}, 
-            color: '#27786b', size: 92 
-        });
-        
-        joystick.on('move', (evt, data) => {
-            var linear = Math.sin(data.angle.radian) * 0.22 * (data.distance / 65);
-            var angular = -Math.cos(data.angle.radian) * 1.2 * (data.distance / 65);
-            cmdVel.publish(new ROSLIB.Message({ header: { frame_id: '' }, twist: { linear: {x: linear, y:0, z:0}, angular: {x:0, y:0, z:angular} } }));
-        });
-        
-        joystick.on('end', () => { 
-            cmdVel.publish(new ROSLIB.Message({ header: { frame_id: '' }, twist: { linear: {x:0, y:0, z:0}, angular: {x:0, y:0, z:0} } })); 
-        });
+        var joystick = null;
+
+        function publishStopCommand() {
+            cmdVel.publish(new ROSLIB.Message({ header: { frame_id: '' }, twist: { linear: {x:0, y:0, z:0}, angular: {x:0, y:0, z:0} } }));
+        }
+
+        function initJoystick() {
+            if (joystick) return;
+            var zone = document.getElementById('zone_joystick');
+            if (!zone || !window.nipplejs) return;
+            joystick = nipplejs.create({
+                zone: zone,
+                mode: 'static',
+                position: {left: '50%', top: '50%'},
+                color: '#27786b',
+                size: 92
+            });
+
+            joystick.on('move', (evt, data) => {
+                var linear = Math.sin(data.angle.radian) * 0.22 * (data.distance / 65);
+                var angular = -Math.cos(data.angle.radian) * 1.2 * (data.distance / 65);
+                cmdVel.publish(new ROSLIB.Message({ header: { frame_id: '' }, twist: { linear: {x: linear, y:0, z:0}, angular: {x:0, y:0, z:angular} } }));
+            });
+
+            joystick.on('end', publishStopCommand);
+        }
     </script>
 </body>
 </html>

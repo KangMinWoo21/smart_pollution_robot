@@ -1,368 +1,257 @@
-# TurtleBot3 Air Purifier Robot
-
-ROS 2 Jazzy 기반 TurtleBot3 Waffle 공기정화 로봇 프로젝트입니다. PMS7003 미세먼지 센서로 PM2.5 값을 측정하고, 오염 감지 시 로봇을 정지시킨 뒤 릴레이로 블로우팬을 구동합니다. iPad 또는 브라우저 웹 대시보드에서 수동 조종, 자동 모드 전환, 실시간 맵 확인을 수행할 수 있습니다.
-
-## 주요 기능
-
-- TurtleBot3 Waffle 기반 ROS 2 주행
-- PMS7003 PM2.5 센서 데이터 수집
-- 릴레이 기반 블로우팬 ON/OFF 제어
-- 웹 UI 기반 수동 조종 및 자동 모드 전환
-- rosbridge websocket 기반 브라우저-ROS 연동
-- Navigation2 저장 맵 기반 위치 추정 및 주행
-- 자동 모드 중 오염 감지 시 정지, 정화, 탐색 재개 FSM
-- 가상 오염원 기반 Nav2 자동 정화 실험 노드
-- 라이다 근거리 노이즈 제거용 `/scan_filtered` 발행
-
-## 프로젝트 구조
-
-```text
-pollution_robot/
-├── README.md
-├── real_cleaner.py              # 실전 공기정화 FSM 노드
-├── map_web_publisher.py         # 웹 UI용 /map_web 주기 발행 노드
-├── robot_pose_web_publisher.py  # 웹 UI용 /robot_pose_web 주기 발행 노드
-├── virtual_cleaner.py           # 가상 오염원 기반 Nav2 자동 정화 노드
-├── scan_masker.py               # /scan 근거리 노이즈 제거 필터
-├── my_cartographer.launch.py    # /scan_filtered 기반 Cartographer launch 초안
-├── start_raspberry_pi.sh        # Raspberry Pi/TurtleBot3 실행 자동화
-├── start_laptop.sh              # 노트북 실행 자동화
-├── run_demo.sh                  # 초기 시연용 통합 실행 스크립트
-├── stop_demo.sh                 # 시연 프로세스 종료 스크립트
-├── linetrace_map.yaml           # 저장 맵 메타데이터
-├── linetrace_map.pgm            # 저장 맵 이미지
-├── web_ui/
-│   └── index.html               # iPad/브라우저 관제 UI
-└── docs/
-    └── project_spec.md          # 진행 기록 및 상세 명세 원본
-```
-
-현재 저장소는 ROS 2 패키지 형태가 아닌 Python 스크립트 중심 구조입니다. 따라서 `colcon build` 없이 각 노드를 직접 실행하는 방식을 기준으로 설명합니다.
-
-## 하드웨어 구성
-
-| 구성품 | 설정 |
-| --- | --- |
-| 로봇 플랫폼 | TurtleBot3 Waffle |
-| 메인 보드 | Raspberry Pi 4 |
-| ROS 2 | Jazzy |
-| 라이다 | LDS-02 |
-| 미세먼지 센서 | PMS7003 |
-| 센서 포트 | `/dev/ttyAMA0` |
-| 센서 baudrate | `9600` |
-| 릴레이 GPIO 모드 | `GPIO.BOARD` |
-| 릴레이 제어 핀 | 물리 핀 12 |
-| 팬 전원 | 외부 12V 배터리, 릴레이 COM-NO 경유 |
+ ## 통합 실행
 
-PMS7003 센서 노드는 시리얼 프레임 헤더 `0x42 0x4d`를 백그라운드 스레드에서 추적해 PM2.5 값을 안정적으로 파싱하는 구조로 설계했습니다. 팬은 Raspberry Pi 전원 핀에서 직접 구동하지 않고, Raspberry Pi는 릴레이 신호 제어만 담당합니다.
-
-## 설치 방법
+  시연과 테스트는 노트북에서 아래 명령 하나로 시작한다.
 
-### 1. ROS 2 및 TurtleBot3 패키지
+  ```bash
+  ./run_demo.sh
 
-노트북과 TurtleBot3 양쪽에 ROS 2 Jazzy 환경이 필요합니다.
+  run_demo.sh는 항상 Raspberry Pi 쪽과 노트북 쪽을 함께 실행한다.
 
-```bash
-source /opt/ros/jazzy/setup.bash
-```
+  Raspberry Pi 쪽에서 실행되는 것:
 
-노트북에는 다음 패키지가 필요합니다.
+  - TurtleBot3 bringup
+  - LDS /scan
+  - odometry /odom
+  - PMS7003 미세먼지 센서
+  - relay / blower fan 제어
+  - /dev/ttyS0 사용 전 serial-getty@ttyS0 정지
 
-```bash
-sudo apt update
-sudo apt install -y \
-  ros-jazzy-turtlebot3 \
-  ros-jazzy-turtlebot3-navigation2 \
-  ros-jazzy-turtlebot3-cartographer \
-  ros-jazzy-turtlebot3-teleop \
-  ros-jazzy-rosbridge-server
-```
+  노트북 쪽에서 실행되는 것:
 
-TurtleBot3에는 bringup 패키지가 필요합니다.
+  - Zenoh router
+  - Nav2
+  - rosbridge
+  - web UI
+  - map publisher
+  - robot pose publisher
+  - 외부 미세먼지 API node
+  - real_cleaner.py
 
-```bash
-sudo apt install -y ros-jazzy-turtlebot3-bringup
-```
+  통합 실행 후 확인할 기본 포트:
 
-### 2. 저장소 받기
+  - web: http://127.0.0.1:8000/
+  - rosbridge: 9090
+  - Zenoh: 7447
 
-```bash
-git clone <repository-url> pollution_robot
-cd pollution_robot
-chmod +x run_demo.sh stop_demo.sh start_laptop.sh start_raspberry_pi.sh
-```
+  기본 확인 토픽:
 
-### 3. Raspberry Pi Python 의존성
+  ros2 topic list | grep -E '/scan|/odom|/pms7003/pm25|/hardware/relay|/air_quality/outdoor_pm25|/air_quality/adaptive_threshold'
 
-PMS7003와 릴레이 제어 노드를 사용하는 Raspberry Pi 환경에는 다음 Python 패키지가 필요합니다.
+  2D Pose Estimate가 잡히려면 /scan, /odom, TF가 먼저 살아 있어야 한다. 특히 odom -> base_footprint가 없으면 Raspberry Pi bringup이 제대로 실행되지 않
+  은 상태다.
 
-```bash
-pip3 install pyserial RPi.GPIO
-```
+  ## 시연 설정
 
-Raspberry Pi에서 실행하는 하드웨어 노드는 저장소 루트의 `pms_ros_node.py`, `relay_control_node.py`로 분리되어 있습니다. 기본 실행은 `start_raspberry_pi.sh`가 담당하며, 필요하면 `PMS_NODE`, `RELAY_NODE`, `PMS_PORT` 환경 변수로 경로와 포트를 덮어쓸 수 있습니다.
+  시연장 자동 순찰 waypoint:
 
-## 네트워크 설정
+  3.07,4.98,-1.59
+  3.00,1.25,0.05
+  5.62,1.63,1.47
+  7.50,5.19,-2.90
+  5.42,4.68,3.01
 
-모든 장치는 같은 네트워크에 있어야 하며, 동일한 ROS domain을 사용해야 합니다.
+  주방 집중 모드 waypoint:
 
-```bash
-export ROS_DOMAIN_ID=30
-export TURTLEBOT3_MODEL=waffle
-export LDS_MODEL=LDS-02
-```
+  7.50,5.19,-2.90
 
-시연 기준 네트워크 설정은 다음과 같습니다.
+  주방 집중이 정상 작동하면 real_cleaner.py 로그에 아래와 비슷하게 출력된다.
 
-| 장치 | 주소 |
-| --- | --- |
-| 네트워크 | iPhone 개인 핫스팟 |
-| 대역 | `172.20.10.x / 255.255.255.240` |
-| 노트북 | `172.20.10.5` |
-| TurtleBot3 | `172.20.10.2` |
-| iPad UI | `http://172.20.10.5:8000` |
-| rosbridge | `ws://172.20.10.5:9090` |
+  집중 순찰 구역 변경: kitchen, 후보 1개
 
-Docker 가상 네트워크가 활성화되어 있으면 FastDDS가 `/map` 같은 대용량 토픽을 잘못된 네트워크 인터페이스로 송신해 웹 UI 지도 표시가 실패할 수 있습니다. 시연 전 노트북에서 `docker0` 인터페이스를 내립니다.
+  현재 팬 ON 기준:
 
-```bash
-sudo ip link set dev docker0 down
-```
+  기본 실내 PM2.5 기준: 50
+  가습기 의심 기준: PM2.5 35 초과
+  외부 미세먼지 나쁨: 48
+  외부 미세먼지 매우 나쁨: 45
 
-`run_demo.sh`, `stop_demo.sh`에는 TurtleBot3 접속 정보가 하드코딩되어 있습니다.
+  외부 미세먼지는 창문이 닫힌 시연 환경을 기준으로 실내 기준을 소폭만 낮춘다.
 
-```text
-user: a
-host: 172.20.10.2
-```
+  ## 외부 미세먼지 API
 
-다른 환경에서는 SSH 계정과 IP를 수정해야 합니다.
+  사용 API:
 
-## 실행 순서
+  endpoint: http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty
+  stationName: 복대동
+  dataTerm: DAILY
+  pageNo: 1
+  numOfRows: 1
+  returnType: json
+  ver: 1.3
+  json path: response.body.items.0.pm25Value
 
-장치별 실행 절차는 자동화 스크립트로도 실행할 수 있습니다.
+  외부 PM2.5 값은 /air_quality/outdoor_pm25로 publish되고 웹 UI에 표시된다.
 
-Raspberry Pi / TurtleBot3에서:
+  확인 명령:
 
-```bash
-cd /home/kang/pollution_robot
-./start_raspberry_pi.sh
-```
+  ros2 topic echo /air_quality/outdoor_pm25 --once
 
-노트북에서:
+  ## 맵과 장애물 회피 설정
 
-```bash
-cd /home/kang/pollution_robot
-./start_laptop.sh
-```
+  run_demo.sh는 기본으로 원래 매핑한 linetrace_map.yaml을 사용한다. linetrace_map_dynamic.yaml은 가운데 장애물을 너무 많이 지워 Nav2가 실제 장애물 방향으로 경로를 만들 수 있으므로 기본값으로 쓰지 않는다.
 
-스크립트는 실행 로그를 `logs/` 디렉터리에 저장합니다. `Ctrl+C`를 누르면 해당 스크립트가 실행한 프로세스를 종료합니다.
+  현재 Nav2는 demo_nav2_params.yaml을 사용한다. 이 파일은 정적 맵의 테두리와 기존 구조물은 유지하면서, local/global costmap의 scan obstacle_layer로 실제 LiDAR 장애물을 반영한다. 즉 가운데 배치가 약간 바뀐 경우에는 맵을 지우는 방식이 아니라 센서 기반 costmap으로 회피한다.
 
-주요 환경 변수는 다음처럼 실행 시 덮어쓸 수 있습니다.
+  장애물 근처에서 바로 멈추는 경우 확인 순서:
 
-```bash
-ROS_DOMAIN_ID=30 MAP_FILE=/path/to/map.yaml ./start_laptop.sh
-OUTDOOR_AIR_MODE=mock OUTDOOR_PM25_MOCK=62 ./start_laptop.sh
-OUTDOOR_AIR_MODE=api OUTDOOR_AIR_API_URL='https://example.com/air.json' OUTDOOR_AIR_API_JSON_PATH='pm25' ./start_laptop.sh
-PMS_NODE=/path/to/pms_ros_node.py RELAY_NODE=/path/to/relay_control_node.py ./start_raspberry_pi.sh
-```
+  - RViz에서 local_costmap과 global_costmap이 실제 장애물을 과하게 크게 표시하는지 확인
+  - demo_nav2_params.yaml의 inflation_radius는 0.30m 기준이다. 너무 좁게 지나가면 0.35로 올리고, 너무 멀리서 멈추면 0.25로 낮춘다.
+  - movement_time_allowance는 20초로 늘려 좁은 곳에서 바로 stuck 판정이 나지 않게 했다.
+  - 정적 맵에 없는 새 장애물은 LiDAR로 회피하지만, 통로 전체를 막으면 우회 경로가 없어서 정지하는 것이 정상이다.
 
-### 1. TurtleBot3 / Raspberry Pi
+  ## 자주 나는 오류와 해결
 
-터미널 1: TurtleBot3 bringup
+  ### 웹이 안 뜸
 
-```bash
-export ROS_DOMAIN_ID=30
-export TURTLEBOT3_MODEL=waffle
-export LDS_MODEL=LDS-02
-ros2 launch turtlebot3_bringup robot.launch.py
-```
+  원인:
 
-터미널 2: PMS7003 센서 노드
+  - web server가 죽었거나 8000 포트가 열려 있지 않음
+  - rosbridge가 죽어서 화면 데이터가 갱신되지 않음
 
-```bash
-export ROS_DOMAIN_ID=30
-python3 pms_ros_node.py
-```
+  확인:
 
-터미널 3: 릴레이 제어 노드
+  curl -I http://127.0.0.1:8000/
+  curl -I http://127.0.0.1:9090/
 
-```bash
-export ROS_DOMAIN_ID=30
-python3 relay_control_node.py
-```
+  해결:
 
-### 2. 노트북
+  ./run_demo.sh
 
-네트워크 충돌 방지:
+  또는 노트북 쪽만 재시작:
 
-```bash
-sudo ip link set dev docker0 down
-```
+  USE_ZENOH=1 ./start_laptop.sh
 
-터미널 1: 저장 맵 기반 Navigation2 실행
+  ### 2D Pose Estimate가 안 잡힘
 
-```bash
-export ROS_DOMAIN_ID=30
-export TURTLEBOT3_MODEL=waffle
-ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=/home/kang/pollution_robot/linetrace_map.yaml
-```
+  원인:
 
-RViz가 열리면 `2D Pose Estimate`로 실제 로봇 위치와 지도상의 위치를 맞춥니다.
+  - Raspberry Pi bringup이 죽음
+  - /scan publisher 없음
+  - /odom publisher 없음
+  - odom -> base_footprint TF 없음
+  - AMCL/Nav2는 떠 있지만 로봇 센서 데이터가 안 들어옴
 
-터미널 2: rosbridge websocket 실행
+  확인:
 
-```bash
-export ROS_DOMAIN_ID=30
-ros2 launch rosbridge_server rosbridge_websocket_launch.xml
-```
+  ros2 topic info /scan
+  ros2 topic info /odom
+  ros2 run tf2_ros tf2_echo odom base_footprint
 
-터미널 3: 웹 UI 서버 실행
+  해결:
 
-```bash
-cd /home/kang/pollution_robot/web_ui
-python3 -m http.server 8000
-```
+  ./run_demo.sh
 
-터미널 4: 공기정화 FSM 노드 실행
+  또는 Pi 쪽만 재시작:
 
-```bash
-cd /home/kang/pollution_robot
-export ROS_DOMAIN_ID=30
-python3 real_cleaner.py
-```
+  ssh -t a@172.20.10.2 'cd /home/a/pollution_robot && USE_ZENOH=1 ZENOH_ROUTER_ENDPOINT=tcp/172.20.10.5:7447 PMS_PORT=/dev/ttyS0 ./
+  start_raspberry_pi.sh'
 
-### 3. iPad / 브라우저
+  ### 주방 집중 모드가 전체 순찰처럼 보임
 
-브라우저에서 다음 주소로 접속합니다.
+  원인:
 
-```text
-http://172.20.10.5:8000
-```
+  - 오래된 real_cleaner.py 프로세스가 살아 있음
+  - 주방 bounds가 시연장 좌표와 맞지 않음
+  - /target_zone이 kitchen으로 publish되지 않음
 
-접속 후 확인 순서:
+  확인:
 
-1. 상태 표시가 연결됨으로 바뀌는지 확인
-2. `/map`이 웹 UI에 표시되는지 확인
-3. `수동` 모드에서 조이스틱으로 로봇이 움직이는지 확인
-4. `자동` 모드로 전환해 로봇이 제자리 회전 탐색을 수행하는지 확인
-5. PMS7003 센서 근처에 오염원을 투입
-6. PM2.5 값이 임계치 이상일 때 팬 ON 및 로봇 정지 확인
-7. 정화 기준 이하로 내려가면 팬 OFF 및 탐색 재개 확인
+  ros2 topic echo /target_zone --once
 
-## 토픽 구조
+  정상 로그:
 
-| 토픽 / Action | 타입 | 발행 | 구독 | 설명 |
-| --- | --- | --- | --- | --- |
-| `/pms7003/pm25` | `std_msgs/Int32` | PMS7003 센서 노드 | `real_cleaner.py` | PM2.5 측정값 |
-| `/robot_mode` | `std_msgs/String` | 웹 UI | `real_cleaner.py`, `virtual_cleaner.py` | `manual` / `auto` 모드 전환 |
-| `/cmd_vel` | `geometry_msgs/TwistStamped` | 웹 UI, `real_cleaner.py` | TurtleBot3 | 수동 조종 및 자동 탐색 속도 |
-| `/hardware/relay` | `std_msgs/Bool` | `real_cleaner.py`, `virtual_cleaner.py` | 릴레이 제어 노드 | 팬 ON/OFF |
-| `/air_quality/outdoor_pm25` | `std_msgs/Int32` | `outdoor_air_quality_node.py` | `real_cleaner.py`, 웹 UI | 외부 PM2.5 |
-| `/air_quality/adaptive_threshold` | `std_msgs/Int32` | `real_cleaner.py` | 웹 UI | 현재 팬 ON 기준 |
-| `/scan` | `sensor_msgs/LaserScan` | TurtleBot3 LiDAR | `scan_masker.py`, SLAM/Nav2 | 원본 라이다 스캔 |
-| `/scan_filtered` | `sensor_msgs/LaserScan` | `scan_masker.py` | Cartographer/Nav2 | 근거리 노이즈 제거 스캔 |
-| `/map` | `nav_msgs/OccupancyGrid` | SLAM/Nav2 | 웹 UI, RViz | 지도 데이터 |
-| `/map_web` | `nav_msgs/OccupancyGrid` | `map_web_publisher.py` | 웹 UI | rosbridge 표시용 주기 발행 지도 |
-| `/robot_pose_web` | `geometry_msgs/PoseStamped` | `robot_pose_web_publisher.py` | 웹 UI | 로봇 위치 표시용 주기 발행 pose |
-| `/pollution_markers` | `visualization_msgs/MarkerArray` | `virtual_cleaner.py` | RViz | 가상 오염원 표시 |
-| `navigate_to_pose` | `nav2_msgs/action/NavigateToPose` | `virtual_cleaner.py` | Nav2 | 목표 지점 주행 요청 |
+  집중 순찰 구역 변경: kitchen, 후보 1개
 
-## FSM 동작 설명
+  해결:
 
-실전 제어 노드 `real_cleaner.py`는 `AutonomousPurifier` 클래스로 구현된 간단한 FSM입니다.
+  USE_ZENOH=1 ./start_laptop.sh
 
-### 상태 변수
+  ### PMS7003 센서가 안 뜸
 
-| 변수 | 의미 |
-| --- | --- |
-| `current_mode` | 현재 주행 모드. 기본값은 `manual` |
-| `current_pm` | 최근 PM2.5 센서값 |
-| `outdoor_pm25` | 최근 외부 PM2.5 값 |
-| `is_purifying` | 정화 동작 진행 여부 |
-| `POLLUTION_THRESHOLD` | 오염 감지 기준. 외부 PM2.5에 따라 `100`, `85`, `70`으로 조정 |
-| `CLEAN_THRESHOLD` | 정화 완료 기준. 기본값 `45` |
+  원인:
 
-### 상태 전이
+  - /dev/ttyS0를 serial-getty가 잡고 있음
+  - Pi 쪽 PMS node가 죽음
+  - Zenoh 연결이 안 됨
 
-```text
-manual
-  ├─ /robot_mode == auto ─────────────▶ auto_explore
-  └─ joystick /cmd_vel ───────────────▶ manual
+  확인:
 
-auto_explore
-  ├─ PM2.5 >= adaptive threshold ────▶ purifying
-  ├─ /robot_mode == manual ──────────▶ manual + stop_robot()
-  └─ timer loop ─────────────────────▶ rotate in place
+  ros2 topic echo /pms7003/pm25 --once
 
-purifying
-  ├─ PM2.5 <= 45 ────────────────────▶ previous mode behavior
-  └─ timer loop ─────────────────────▶ stop_robot() + fan ON
-```
+  해결:
 
-### 제어 우선순위
+  ssh -t a@172.20.10.2 'sudo systemctl stop serial-getty@ttyS0.service'
+  ssh -t a@172.20.10.2 'cd /home/a/pollution_robot && PMS_PORT=/dev/ttyS0 ./start_raspberry_pi.sh'
 
-1. 정화 중이면 모드와 관계없이 로봇을 정지합니다.
-2. 오염 감지 시 `/hardware/relay=True`를 발행해 팬을 켭니다.
-3. 공기질이 정화 기준 이하로 내려가면 `/hardware/relay=False`를 발행해 팬을 끕니다.
-4. 자동 모드에서는 0.5초마다 `angular.z = 0.3` 회전 명령을 발행합니다.
-5. 수동 모드에서는 웹 UI 조이스틱이 `/cmd_vel` 제어권을 갖습니다.
-6. 자동 모드에서 수동 모드로 바뀌는 순간 `stop_robot()`을 한 번 호출해 잔여 속도 명령을 제거합니다.
+  ### 팬이 안 켜짐
 
+  원인:
 
-외부 PM2.5 값이 들어오면 팬 ON 기준은 적응형으로 바뀝니다. 외부 데이터가 없거나 정상 수준이면 기준은 `100`이고, 외부 PM2.5가 `36-75`이면 `85`, `76` 이상이면 `70`으로 낮아집니다. 외부 대기질만으로 팬을 켜지는 않고, 실내 PMS7003 값이 현재 기준 이상일 때만 정화를 시작합니다.
+  - /hardware/relay node가 죽음
+  - adaptive threshold보다 PM2.5가 낮음
+  - Pi 쪽 relay 권한 문제
 
-## 주요 노드
+  확인:
 
-### `real_cleaner.py`
+  ros2 topic echo /air_quality/adaptive_threshold --once
+  ros2 topic echo /hardware/relay --once
 
-센서 기반 실전 정화 FSM 노드입니다.
+  수동 확인:
 
-```bash
-python3 real_cleaner.py
-```
+  ros2 topic pub --once /hardware/relay std_msgs/msg/Bool "{data: true}"
 
-### `outdoor_air_quality_node.py`
+  ### 외부 미세먼지가 고정값으로 보임
 
-외부 PM2.5를 `/air_quality/outdoor_pm25`로 발행하는 선택 노드입니다. 기본값은 API 키 없이 동작하는 mock 모드입니다.
+  원인:
 
-```bash
-OUTDOOR_AIR_MODE=mock OUTDOOR_PM25_MOCK=62 python3 outdoor_air_quality_node.py
-```
+  - OUTDOOR_AIR_MODE=mock 상태
+  - API key 또는 JSON path 오류
+  - 공공데이터 API 응답 지연
 
-### `virtual_cleaner.py`
+  확인:
 
-가상 오염원을 생성하고 Nav2 `navigate_to_pose` action으로 순차 이동하는 실험용 노드입니다.
+  ros2 topic echo /air_quality/outdoor_pm25 --once
 
-```bash
-python3 virtual_cleaner.py
-```
+  해결:
 
-웹 UI에서 `자동` 모드를 누르면 `/robot_mode=auto`를 받아 자동 정화 시퀀스를 시작합니다.
+  OUTDOOR_AIR_MODE=api USE_ZENOH=1 ./start_laptop.sh
 
-### `scan_masker.py`
+  ### Nav2 timeout
 
-라이다 기준 `0.20m` 이내의 유효 거리값을 `0.0`으로 바꿔 `/scan_filtered`로 발행합니다.
+  원인:
 
-```bash
-python3 scan_masker.py
-```
+  - map, AMCL, controller lifecycle node가 inactive
+  - 초기 위치가 안 잡힘
+  - /scan, /odom, TF가 없음
+  - Zenoh discovery 지연
 
-## 시연 종료
+  확인:
 
-시연용 프로세스를 종료하려면 다음 스크립트를 사용할 수 있습니다.
+  ros2 lifecycle get /controller_server
+  ros2 lifecycle get /planner_server
+  ros2 topic info /scan
+  ros2 topic info /odom
 
-```bash
-./stop_demo.sh
-```
+  해결:
 
-주의: 이 스크립트는 `pkill`을 사용해 로컬과 원격의 ROS/Python 프로세스를 종료합니다. 다른 ROS 2 작업을 동시에 실행 중이면 함께 종료될 수 있습니다.
+  ./run_demo.sh
 
-## 향후 개선 사항
+  그 후 RViz에서 2D Pose Estimate를 다시 찍는다.
 
-- ROS 2 Python 패키지 구조로 변환
-- `pms_ros_node.py`, `relay_control_node.py`를 실제 소스 파일로 분리
-- launch 파일 통합 및 파라미터 YAML 분리
-- PM2.5 임계값, 회전 속도, 팬 동작 정책 파라미터화
-- 웹 UI 외부 CDN 의존성 로컬 번들링
-- DDS 인터페이스 설정을 XML profile로 고정
+  ### bwrap 또는 sandbox timeout
+
+  개발 중 아래 오류가 날 수 있다.
+
+  bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted
+
+  원인:
+
+  - Codex 실행 sandbox가 네트워크 namespace를 만들지 못함
+  - 긴 heredoc, 긴 파일쓰기, 긴 Perl 치환 명령이 자동 승인 검토에서 timeout됨
+
+  해결:
+
+  - 긴 파일쓰기는 한 번에 하지 말고 짧은 명령으로 나눠 실행
+  - 큰 README 수정은 직접 붙여넣는 방식이 더 빠름
+  - 실제 로봇 실행 명령은 일반 터미널에서 직접 실행하면 sandbox 영향을 받지 않음
+

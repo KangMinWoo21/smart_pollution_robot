@@ -1,15 +1,39 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# 1. 로컬(노트북)에서 돌아가는 ROS 2 프로세스 종료
-pkill -f ros2
-pkill -f cartographer
-pkill -f rviz2
-pkill -f teleop_keyboard
+PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+LOG_DIR="${LOG_DIR:-$PROJECT_DIR/logs}"
+ROS_SETUP="${ROS_SETUP:-/opt/ros/jazzy/setup.bash}"
+PI_SSH="${PI_SSH:-a@172.20.10.2}"
 
-# 2. 로봇(SSH)에서 돌아가는 프로세스들 종료 (원격 명령)
-ssh a@172.20.10.2 "pkill -f ros2; pkill -f python3"
+export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-30}"
 
-# 3. 모든 터미널 창 닫기
-pkill -f gnome-terminal
+mkdir -p "$LOG_DIR"
 
-echo "모든 시연 프로세스가 안전하게 종료되었습니다."
+echo "[stop] demo stack"
+
+if [[ -f "$ROS_SETUP" ]]; then
+  echo "[stop] requesting manual mode, zero velocity, and relay/fan OFF"
+  (
+    source "$ROS_SETUP"
+    export ROS_DOMAIN_ID="$ROS_DOMAIN_ID"
+    export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_zenoh_cpp}"
+    export ZENOH_SESSION_CONFIG_URI="${ZENOH_SESSION_CONFIG_URI:-$LOG_DIR/zenoh_laptop_session.json5}"
+    timeout 3 ros2 topic pub --once /robot_mode std_msgs/msg/String "{data: manual}" >/dev/null 2>&1 || true
+    timeout 3 ros2 topic pub --once /cmd_vel geometry_msgs/msg/TwistStamped "{header: {frame_id: base_link}, twist: {linear: {x: 0.0}, angular: {z: 0.0}}}" >/dev/null 2>&1 || true
+    timeout 3 ros2 topic pub --once /hardware/relay std_msgs/msg/Bool "{data: false}" >/dev/null 2>&1 || true
+  ) || true
+fi
+
+echo "[stop] laptop processes"
+pkill -f "start_laptop.sh|rmw_zenohd|component_container_isolated|turtlebot3_navigation2|rosbridge_websocket|rosapi_node|rviz2|real_cleaner.py|map_web_publisher.py|robot_pose_web_publisher.py|outdoor_air_quality_node.py|no_cache_web_server.py|cmd_vel_nav_relay.py" 2>/dev/null || true
+
+echo "[stop] Raspberry Pi processes"
+ssh -o ConnectTimeout=3 "$PI_SSH" "pkill -f '[s]tart_raspberry_pi.sh|[r]obot.launch.py|[t]urtlebot3_ros|[r]obot_state_publisher|[l]d08_driver|[p]ms_ros_node.py|[r]elay_control_node.py' 2>/dev/null || true" 2>/dev/null || true
+
+sleep 1
+
+echo "[check] remaining laptop demo processes"
+pgrep -af "start_laptop.sh|rmw_zenohd|component_container_isolated|turtlebot3_navigation2|rosbridge_websocket|rosapi_node|rviz2|real_cleaner.py|map_web_publisher.py|robot_pose_web_publisher.py|outdoor_air_quality_node.py|no_cache_web_server.py|cmd_vel_nav_relay.py" || true
+
+echo "[done] demo stack stop requested"

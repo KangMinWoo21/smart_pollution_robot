@@ -18,7 +18,7 @@ function runTest(name, fn) {
 
 runTest('kitchen during dinner ranks above low-risk corridor', () => {
     const zones = [
-        { id: 'kitchen', label: '부엌', type: 'kitchen', distance: 1.8, recentVisitMinutes: 80, lastPm25: 82 },
+        { id: 'kitchen', label: '주방', type: 'kitchen', distance: 1.8, recentVisitMinutes: 80, lastPm25: 82 },
         { id: 'corridor', label: '복도', type: 'corridor', distance: 0.4, recentVisitMinutes: 90, lastPm25: 28 },
     ];
 
@@ -54,19 +54,19 @@ runTest('bathroom has morning and night time risk', () => {
 
 
 runTest('adaptive threshold stays default when outdoor data is missing or clean', () => {
-    assert.strictEqual(calculateAdaptiveThreshold(null), 100);
-    assert.strictEqual(calculateAdaptiveThreshold(undefined), 100);
-    assert.strictEqual(calculateAdaptiveThreshold(20), 100);
-    assert.strictEqual(calculateAdaptiveThreshold(35), 100);
+    assert.strictEqual(calculateAdaptiveThreshold(null), 50);
+    assert.strictEqual(calculateAdaptiveThreshold(undefined), 50);
+    assert.strictEqual(calculateAdaptiveThreshold(20), 50);
+    assert.strictEqual(calculateAdaptiveThreshold(35), 50);
 });
 
 runTest('adaptive threshold lowers when outdoor air is bad', () => {
-    assert.strictEqual(calculateAdaptiveThreshold(36), 85);
-    assert.strictEqual(calculateAdaptiveThreshold(62), 85);
-    assert.strictEqual(calculateAdaptiveThreshold(75), 85);
+    assert.strictEqual(calculateAdaptiveThreshold(36), 48);
+    assert.strictEqual(calculateAdaptiveThreshold(62), 48);
+    assert.strictEqual(calculateAdaptiveThreshold(75), 48);
 });
 
 runTest('adaptive threshold lowers further when outdoor air is very bad', () => {
-    assert.strictEqual(calculateAdaptiveThreshold(76), 70);
-    assert.strictEqual(calculateAdaptiveThreshold(120), 70);
+    assert.strictEqual(calculateAdaptiveThreshold(76), 45);
+    assert.strictEqual(calculateAdaptiveThreshold(120), 45);
 });

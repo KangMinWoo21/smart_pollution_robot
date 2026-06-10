@@ -48,10 +48,10 @@
 
     function calculateAdaptiveThreshold(outdoorPm25) {
         const value = Number(outdoorPm25);
-        if (!Number.isFinite(value)) return 100;
-        if (value > 75) return 70;
-        if (value >= 36) return 85;
-        return 100;
+        if (!Number.isFinite(value)) return 50;
+        if (value > 75) return 45;
+        if (value >= 36) return 48;
+        return 50;
     }
 
     function rankPredictiveZones(zones, context) {
