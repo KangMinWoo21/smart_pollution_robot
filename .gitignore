@@ -8,3 +8,8 @@ logs/
 map_backups/
 .superpowers/
 .bash_history
+*.pptx
+*.pdf
+/docs/
+/current_status.md
+/.codexignore
