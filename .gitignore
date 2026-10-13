@@ -4,3 +4,7 @@ log/
 __pycache__/
 *.pyc
 .vscode/
+logs/
+map_backups/
+.superpowers/
+.bash_history

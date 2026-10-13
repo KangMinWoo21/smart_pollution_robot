@@ -762,15 +762,13 @@
         }
 
         .drawer {
-            position: fixed;
-            left: 8px;
-            right: 8px;
-            bottom: calc(8px + env(safe-area-inset-bottom));
-            z-index: 30;
-            max-width: 540px;
-            margin: 0 auto;
+            position: static;
+            width: 100%;
+            margin-top: 8px;
             border-radius: 8px;
             padding: 10px;
+            border: 1px solid #d7dede;
+            background: #ffffff;
         }
 
         .drawer[hidden] {
@@ -820,7 +818,9 @@
 
         @media (min-width: 760px) {
             .app_shell {
+                width: min(100%, 1080px);
                 padding: 12px;
+                display: grid;
                 grid-template-columns: 300px minmax(0, 1fr);
                 grid-template-rows: auto minmax(0, 1fr);
             }
@@ -842,14 +842,15 @@
                 grid-column: 1;
                 grid-row: 2;
                 align-self: start;
+                display: grid;
+                gap: 8px;
             }
 
-            .drawer {
-                left: 12px;
-                right: auto;
-                bottom: 12px;
-                width: 300px;
+            .command_dock .zone_focus_grid,
+            .command_dock .drawer {
+                margin-top: 0;
             }
+
         }
 
     </style>
@@ -915,14 +916,13 @@
                 <button id="btn_fan_on" class="zone_btn" onclick="setManualFan(true)">팬 ON</button>
                 <button id="btn_fan_off" class="zone_btn active" onclick="setManualFan(false)">팬 OFF</button>
             </div>
-        </section>
-
-        <section id="joystick_drawer" class="drawer" hidden>
-            <div class="drawer_header">
-                <h2 class="drawer_title">수동 조이스틱</h2>
-                <button class="utility_btn" onclick="toggleJoystick(false)">닫기</button>
-            </div>
-            <div id="zone_joystick"></div>
+            <section id="joystick_drawer" class="drawer" hidden>
+                <div class="drawer_header">
+                    <h2 class="drawer_title">수동 조이스틱</h2>
+                    <button class="utility_btn" onclick="toggleJoystick(false)">닫기</button>
+                </div>
+                <div id="zone_joystick"></div>
+            </section>
         </section>
 
     </main>
@@ -954,10 +954,6 @@
             { id: 'wp_3', label: '순찰 3', type: 'window', x: 8.00, y: 1.40, yaw: 1.47, distance: 1.8, recentVisitMinutes: 60, lastPm25: null },
             { id: 'kitchen', label: '주방', type: 'kitchen', x: 7.50, y: 5.19, yaw: -2.90, distance: 1.2, recentVisitMinutes: 90, lastPm25: null },
             { id: 'wp_5', label: '순찰 5', type: 'corridor', x: 5.42, y: 4.68, yaw: 3.01, distance: 0.8, recentVisitMinutes: 60, lastPm25: null }
-        ];
-        var displayOnlyMapDots = [
-            { x: 8.40, y: 4.00 },
-            { x: 2.82, y: 0.50 }
         ];
         var latestPrediction = [];
         var kitchenBounds = { minX: 6.61, maxX: 8.33, minY: 1.40, maxY: 6.05, label: '주방' };
@@ -1127,7 +1123,6 @@
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(offscreen, dx, dy, drawWidth, drawHeight);
             drawKitchenBounds(ctx);
-            drawDisplayOnlyMapDots(ctx);
             drawPredictiveZoneHints(ctx);
             drawRobotPose(ctx);
             status.innerText = '맵 수신 ' + width + 'x' + height;
@@ -1180,28 +1175,6 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillText(label, labelX, labelY);
             ctx.restore();
-        }
-
-        function drawDisplayOnlyMapDots(ctx) {
-            if (!mapDrawState || !displayOnlyMapDots.length) return;
-
-            var pixelRatio = window.devicePixelRatio || 1;
-            displayOnlyMapDots.forEach(function(dot) {
-                var point = worldToCanvas(dot.x, dot.y);
-                if (!point) return;
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, Math.max(8, MAP_DOT_RADIUS_PX * pixelRatio), 0, Math.PI * 2);
-                ctx.fillStyle = '#4577ff';
-                ctx.globalAlpha = 0.78;
-                ctx.fill();
-                ctx.globalAlpha = 1;
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2 * pixelRatio;
-                ctx.stroke();
-                ctx.restore();
-            });
         }
 
         function drawPredictiveZoneHints(ctx) {

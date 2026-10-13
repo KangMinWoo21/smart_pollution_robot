@@ -562,7 +562,7 @@ class AutonomousPurifier(Node):
     @staticmethod
     def fan_alignment_goal(found_goal):
         x, y, yaw = found_goal
-        return (x, y, normalize_yaw(float(yaw) + math.pi))
+        return (x, y, normalize_yaw(float(yaw)))
 
     def start_fan_alignment_goal(self, found_goal, average_pm25):
         self.pending_purify_average_pm25 = average_pm25
@@ -572,12 +572,12 @@ class AutonomousPurifier(Node):
 
         alignment_goal = self.fan_alignment_goal(found_goal)
         if not self.nav_client.wait_for_server(timeout_sec=0.0):
-            self.get_logger().warn("Nav2 서버가 없어 180도 정렬 없이 팬을 켭니다.")
+            self.get_logger().warn("Nav2 서버가 없어 전면 정렬 없이 팬을 켭니다.")
             self.start_purifying("정렬 목표 전송 불가")
             return
 
         self.get_logger().info(
-            f"가습기 확정 -> 후면 정렬 목표 전송: x={alignment_goal[0]:.2f}, "
+            f"가습기 확정 -> 전면 정렬 목표 전송: x={alignment_goal[0]:.2f}, "
             f"y={alignment_goal[1]:.2f}, yaw={alignment_goal[2]:.2f}"
         )
         self.send_nav_goal(alignment_goal, "fan_align", "fan_align")
